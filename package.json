@@ -1,0 +1,8 @@
+{
+  "dependencies": {
+    "terser": "^5.48.0"
+  },
+  "scripts": {
+    "build": "node scripts/build-client.js"
+  }
+}
