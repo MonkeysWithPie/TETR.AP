@@ -106,7 +106,7 @@ function setTarotCardLocked(card, lock) {
     }
     if (!cardDiv) return console.error(`${TAP} Could not find tarot card ${card} to set lock state!`);
 
-    if (cardDiv.classList.contains("floorlocked") && !cardDiv.getAttribute("ap-locked")) {
+    if (cardDiv.classList.contains("floorlocked") && !cardDiv.getAttribute("ap-locked") && false) {
         return console.warn(`${TAP} Card ${card} is locked by game!`)
     }
 
@@ -120,7 +120,7 @@ function setTarotCardLocked(card, lock) {
     const images = cardDiv.getElementsByTagName("img");
     for (const img of images) {
         if (lock && img.classList.contains("zenith_card_lock")) {
-            img.src = "/res/zenith-mods/lockover-9.png"
+            img.src = "{{lockover-ap.png}}"
         }
     }
 

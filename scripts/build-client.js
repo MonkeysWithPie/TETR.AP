@@ -3,8 +3,13 @@
 const fs = require("fs");
 const { minify_sync } = require("terser");
 
-const clientScript = fs.readFileSync("src/client/script.js", "utf-8")
+let clientScript = fs.readFileSync("src/client/script.js", "utf-8")
     .replace("{{clientbox.html}}", fs.readFileSync("src/client/clientbox.html", "utf-8").replace(/\n/g, "\\n").replace(/"/g, '\\"'));
+
+const images = ["lockover-ap.png"]
+for (const img of images) {
+    clientScript = clientScript.replace(`{{${img}}}`, `https://raw.githubusercontent.com/Morko/TETR.AP/main/res/${img}`);
+}
 
 const bookmarklet = minify_sync(clientScript);
 
