@@ -106,7 +106,7 @@ function setTarotCardLocked(card, lock) {
     }
     if (!cardDiv) return console.error(`${TAP} Could not find tarot card ${card} to set lock state!`);
 
-    if (cardDiv.classList.contains("floorlocked") && !cardDiv.getAttribute("ap-locked") && false) {
+    if (cardDiv.classList.contains("floorlocked") && !cardDiv.getAttribute("ap-locked")) {
         return console.warn(`${TAP} Card ${card} is locked by game!`)
     }
 
@@ -121,6 +121,7 @@ function setTarotCardLocked(card, lock) {
     for (const img of images) {
         if (lock && img.classList.contains("zenith_card_lock")) {
             img.src = "{{lockover-ap.png}}"
+            img.classList.add("zenith_card_lockover")
         }
     }
 
