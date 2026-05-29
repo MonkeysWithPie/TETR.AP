@@ -12,6 +12,42 @@ async function waitUntil(predicate, trigger, interval = 200) {
     await trigger();
 }
 
+function getComboAndNum(mods) {
+    const combos = {
+        "Standard": [],
+        "Temperance": ["nohold"],
+        "Wheel of Fortune": ["messy"],
+        "The Tower": ["gravity"],
+        "Strength": ["volatile"],
+        "The Devil": ["doublehole"],
+        "The Hermit": ["invisible"],
+        "The Magician": ["allspin"],
+        "The Emperor": ["expert"],
+    }   
+
+    for (let i = 0; i < Object.keys(combos).length; i++) {
+        const comboName = Object.keys(combos)[i];
+        const comboMods = combos[comboName];
+        if (JSON.stringify(comboMods) === JSON.stringify(mods)) {
+            return { comboName, comboNum: i }
+        }
+    }
+}
+
+function getFloor(height) {
+    const thresholds = [50, 150, 300, 450, 650, 850, 1100, 1350, 1650]
+    for (let i = 0; i < thresholds.length; i++) {
+        if (height < thresholds[i]) {
+            return i + 1;
+        }
+    }
+    return 10;
+}
+
+const client = new Client();
+
+let foundChecks = [];
+
 waitUntil(
     () => document.body,
     () => {
@@ -30,13 +66,14 @@ waitUntil(
             for (const input of inputs) { input.setAttribute("disabled","true") }
             connectionStatus.innerHTML = "Connecting..."
 
-            client.login(inputs["server"].value, inputs["slot"].value, "" /*game name*/, { password: inputs["password"].value })
+            client.login(inputs["ap-server"].value, inputs["ap-slot"].value, "TETR.AP", { password: inputs["ap-password"].value })
                 .then(() => {
                     document.getElementById("ap-chat-area").classList.remove("disabled")
                     document.getElementById("ap-chat-messages").innerHTML = ""
                     document.getElementById("ap-connect-form").classList.add("disabled")
-                    connectionStatus.innerHTML = `Connected as ${inputs["slot"].value}!`
-                    shortStatus.innerHTML = `Connected as ${inputs["slot"].value}`
+                    connectionStatus.innerHTML = `Connected as ${inputs["ap-slot"].value}!`
+                    shortStatus.innerHTML = `Connected as ${inputs["ap-slot"].value}`
+                    relockCards();
                 })
                 .catch((e) => {
                     for (const input of inputs) { input.removeAttribute("disabled"); };
@@ -74,19 +111,100 @@ waitUntil(
     }
 )
 
+function createAPNotification(text, color, timeout = 5000) {
+    const notification = document.createElement("div");
+    notification.classList.add("ns", "notification", "has_image");
+    notification.style = `--pri: ${color}; --sec: #000; border-color: ${color}; background-color: rgba(6, 6, 6, 0.867); color: white;`;
+    notification.innerHTML = `<img class="notification_icon" src="{{archipelago_logo.png}}"><p>${text.toLowerCase()}</p>`;
+    document.getElementById("notifications").appendChild(notification);
+
+    setTimeout(() => {
+        notification.classList.add("despawning");
+        setTimeout(() => {
+            notification.remove();
+        }, 600)
+    }, timeout);
+}
+
+async function onZenithFinish() {
+    if (!client.authenticated) return;
+
+    const finalScore = Number(document.getElementById("zenith_result").innerText.replace("M","").trim());
+    const modImages = document.getElementById("zenith_result").getElementsByClassName("mods")[0].children;
+    const mods = [];
+    for (const img of modImages) {
+        mods.push(img.src.split("/").slice(-1)[0].replace(".png",""));
+    }
+
+    console.log(`${TAP} Zenith run finished! ${finalScore}m, mods: ${mods}`)
+    const { comboName, comboNum } = getComboAndNum(mods);
+    const floor = getFloor(finalScore);
+    console.log(`${TAP} Combo: ${comboName} (num ${comboNum}), Floor: ${floor}`)
+
+    for (let i = 2; i <= floor; i++) {
+        const checkID = i + (comboNum * 100);
+        if (foundChecks.includes(checkID)) continue;
+
+        const itemData = await client.scout([checkID], 0);
+        if (!itemData[0]) continue;
+        const item = itemData[0];
+
+        let notifText = `Sent ${item.name} to ${item.receiver}! (${item.locationName})`;
+        if (item.receiver === client.name) {
+            notifText = `Found your ${item.name}! (${item.locationName})`
+        }
+
+        let color = "#888888";
+        if (item.filler) color = "#01d2d3";
+        if (item.useful) color = "#6d8be8";
+        if (item.progression) color = "#ae98ee";
+        if (item.trap) color = "#fa8072";
+        createAPNotification(notifText, color);
+
+        foundChecks.push(checkID);
+        await client.check(checkID);
+    }
+
+    relockCards();
+}
+
+function relockCards() {
+    if (!client.authenticated) return;
+
+    const cards = {
+        "Temperance": "nohold",
+        "Wheel of Fortune": "messy",
+        "The Tower": "gravity",
+        "Strength": "volatile",
+        "The Devil": "doublehole",
+        "The Hermit": "invisible",
+        "The Magician": "allspin",
+        "The Emperor": "expert",
+    }
+    const items = client.items.received;
+    
+    let unlocked = [];
+
+    for (const item of items) {
+        if (cards[item.name]) {
+            unlocked.push(cards[item.name])
+        }
+    }
+
+    for (const card in cards) {
+        setTarotCardLocked(cards[card], !unlocked.includes(cards[card]))
+    }
+}
+
 async function waitForZenithFinish() {
     waitUntil(() => {
         return !document.getElementById("zenithmenu").classList.contains("rolledup")
+            && !document.getElementById("zenithmenu").classList.contains("hidden")
             && document.getElementById("menus").getAttribute("data-menu-type") === "zenith"
-            && document.getElementById("zenithmenu").classList.contains("inresults");
+            && document.getElementById("zenithmenu").classList.contains("inresults")
+            && document.getElementById("kuro").classList.contains("hidden")
     }, () => {
-        const finalScore = Number(document.getElementById("zenith_result").innerText.replace("M","").trim());
-        const modImages = document.getElementById("zenith_result").getElementsByClassName("mods")[0].children;
-        const mods = [];
-        for (const img of modImages) {
-            mods.push(img.title);
-        }
-        console.log(`${TAP} Zenith run finished! ${finalScore}m, mods: ${mods}`)
+        onZenithFinish();
 
         waitUntil(() => 
             document.getElementById("zenithmenu").classList.contains("hidden"), 
@@ -148,19 +266,19 @@ waitUntil(
         const menu = document.getElementById("tetrap-client-area");
         menu.classList.add("after-menu-load");
         
-        setTarotCardLocked("nohold", true);
         waitForZenithFinish();
     }
 )
-
-
-const client = new Client();
 
 client.messages.on("message", (content) => {
     const chatMessages = document.getElementById("ap-chat-messages")
     const messageElement = document.createElement("p")
     messageElement.innerHTML = content
-    messageElement.classList.add("chat-message")
+    messageElement.classList.add("ap-chat-message")
     chatMessages.appendChild(messageElement)
+})
+
+client.items.on("itemsReceived", (items) => {
+    console.log(`${TAP} Received items: ${items}`)
 })
 })()
