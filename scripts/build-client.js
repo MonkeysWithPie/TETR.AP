@@ -8,7 +8,7 @@ let clientScript = fs.readFileSync("src/client/script.js", "utf-8")
 
 const images = ["lockover-ap.png", "archipelago_logo.png"];
 for (const img of images) {
-    clientScript = clientScript.replace(`{{${img}}}`, `https://raw.githubusercontent.com/MonkeysWithPie/TETR.AP/refs/heads/main/res/${img}`);
+    clientScript = clientScript.replaceAll(`{{${img}}}`, `https://raw.githubusercontent.com/MonkeysWithPie/TETR.AP/refs/heads/main/res/${img}`);
 }
 
 const bookmarklet = minify_sync(clientScript, { mangle: { 

@@ -16,13 +16,21 @@ function getComboAndNum(mods) {
     const combos = {
         "Standard": [],
         "Temperance": ["nohold"],
+        "Asceticism": ["nohold_reversed"],
         "Wheel of Fortune": ["messy"],
+        "Loaded Dice": ["messy_reversed"],
         "The Tower": ["gravity"],
+        "Freefall": ["gravity_reversed"],
         "Strength": ["volatile"],
+        "Last Stand": ["volatile_reversed"],
         "The Devil": ["doublehole"],
+        "Damnation": ["doublehole_reversed"],
         "The Hermit": ["invisible"],
+        "The Exile": ["invisible_reversed"],
         "The Magician": ["allspin"],
+        "The Warlock": ["allspin_reversed"],
         "The Emperor": ["expert"],
+        "The Tyrant": ["expert_reversed"],
     }   
 
     for (let i = 0; i < Object.keys(combos).length; i++) {
@@ -32,10 +40,12 @@ function getComboAndNum(mods) {
             return { comboName, comboNum: i }
         }
     }
+
+    return { comboName: null, comboNum: null };
 }
 
 function getFloor(height) {
-    const thresholds = [50, 150, 300, 450, 650, 850, 1100, 1350, 1650]
+    const thresholds = [0, 50, 150, 300, 450, 650, 850, 1100, 1350, 1650]
     for (let i = 0; i < thresholds.length; i++) {
         if (height < thresholds[i]) {
             return i + 1;
@@ -47,6 +57,7 @@ function getFloor(height) {
 const client = new Client();
 
 let foundChecks = [];
+let menuLoaded = false;
 
 waitUntil(
     () => document.body,
@@ -73,7 +84,9 @@ waitUntil(
                     document.getElementById("ap-connect-form").classList.add("disabled")
                     connectionStatus.innerHTML = `Connected as ${inputs["ap-slot"].value}!`
                     shortStatus.innerHTML = `Connected as ${inputs["ap-slot"].value}`
-                    relockCards();
+                    foundChecks = getFromStorage("foundChecks") || [];
+                    
+                    waitUntil(() => menuLoaded, relockCards);
                 })
                 .catch((e) => {
                     for (const input of inputs) { input.removeAttribute("disabled"); };
@@ -89,6 +102,7 @@ waitUntil(
         }
 
         document.getElementById("ap-disconnect").onclick = () => {
+            setInStorage("foundChecks", foundChecks);
             client.socket.disconnect()
             document.getElementById("ap-chat-area").classList.add("disabled")
             connectionStatus.innerHTML = ""
@@ -110,6 +124,40 @@ waitUntil(
         }
     }
 )
+
+window.onbeforeunload = () => {
+    setInStorage("foundChecks", foundChecks);
+}
+
+function getFromStorage(key) {
+    if (!client.authenticated) return null;
+
+    const allData = localStorage.getItem("tetr-ap-data");
+    if (!allData) return null;
+
+    const data = JSON.parse(allData);
+    return data[client.room.seedName][client.name][key];
+}
+function setInStorage(key, value) {
+    if (!client.authenticated) return;
+
+    let allData = localStorage.getItem("tetr-ap-data");
+    if (!allData) {
+        allData = {};
+    } else {
+        allData = JSON.parse(allData);
+    }
+
+    if (!allData[client.room.seedName]) {
+        allData[client.room.seedName] = {};
+    }
+    if (!allData[client.room.seedName][client.name]) {
+        allData[client.room.seedName][client.name] = {};
+    }
+
+    allData[client.room.seedName][client.name][key] = value;
+    localStorage.setItem("tetr-ap-data", JSON.stringify(allData));
+}
 
 function createAPNotification(text, color, timeout = 5000) {
     const notification = document.createElement("div");
@@ -138,6 +186,12 @@ async function onZenithFinish() {
 
     console.log(`${TAP} Zenith run finished! ${finalScore}m, mods: ${mods}`)
     const { comboName, comboNum } = getComboAndNum(mods);
+    if (!comboName) {
+        relockCards();
+        console.log(`${TAP} No combo found for mods ${mods}`);
+        return;
+    }
+
     const floor = getFloor(finalScore);
     console.log(`${TAP} Combo: ${comboName} (num ${comboNum}), Floor: ${floor}`)
 
@@ -150,7 +204,7 @@ async function onZenithFinish() {
         const item = itemData[0];
 
         let notifText = `Sent ${item.name} to ${item.receiver}! (${item.locationName})`;
-        if (item.receiver === client.name) {
+        if (item.receiver == client.name) {
             notifText = `Found your ${item.name}! (${item.locationName})`
         }
 
@@ -168,31 +222,44 @@ async function onZenithFinish() {
     relockCards();
 }
 
+const tarotCardMap = {
+    "Temperance": "nohold",
+    "Wheel of Fortune": "messy",
+    "The Tower": "gravity",
+    "Strength": "volatile",
+    "The Devil": "doublehole",
+    "The Hermit": "invisible",
+    "The Magician": "allspin",
+    "The Emperor": "expert",
+}
+
+function unlockCards() {
+    for (const card in tarotCardMap) {
+        setTarotCardLocked(tarotCardMap[card], false)
+        setTarotCardReverseLocked(tarotCardMap[card], false)
+    }
+}
 function relockCards() {
     if (!client.authenticated) return;
 
-    const cards = {
-        "Temperance": "nohold",
-        "Wheel of Fortune": "messy",
-        "The Tower": "gravity",
-        "Strength": "volatile",
-        "The Devil": "doublehole",
-        "The Hermit": "invisible",
-        "The Magician": "allspin",
-        "The Emperor": "expert",
-    }
     const items = client.items.received;
     
     let unlocked = [];
 
     for (const item of items) {
-        if (cards[item.name]) {
-            unlocked.push(cards[item.name])
+        if (tarotCardMap[item.name]) {
+            unlocked.push(tarotCardMap[item.name])
+        }
+
+        const reverse = item.name.replace("Reversed ","");
+        if (tarotCardMap[reverse] && reverse !== item.name) {
+            unlocked.push(`${tarotCardMap[reverse]}_reversed`)
         }
     }
 
-    for (const card in cards) {
-        setTarotCardLocked(cards[card], !unlocked.includes(cards[card]))
+    for (const card in tarotCardMap) {
+        setTarotCardLocked(tarotCardMap[card], !unlocked.includes(tarotCardMap[card]))
+        setTarotCardReverseLocked(tarotCardMap[card], !unlocked.includes(`${tarotCardMap[card]}_reversed`))
     }
 }
 
@@ -213,16 +280,18 @@ async function waitForZenithFinish() {
     });
 }
 
-function setTarotCardLocked(card, lock) {
+function getTarotCard(card) {
     const cardDivs = document.getElementsByClassName("zenith_card");
-    let cardDiv;
     for (const div of cardDivs) {
         if (div.getAttribute("data-card") === card) {
-            cardDiv = div;
-            break;
+            return div;
         }
     }
-    if (!cardDiv) return console.error(`${TAP} Could not find tarot card ${card} to set lock state!`);
+    throw new Error(`${TAP} Could not find tarot card ${card}!`)
+}
+
+function setTarotCardLocked(card, lock) {
+    const cardDiv = getTarotCard(card);
 
     if (cardDiv.classList.contains("floorlocked") && !cardDiv.getAttribute("ap-locked")) {
         return console.warn(`${TAP} Card ${card} is locked by game!`)
@@ -255,6 +324,38 @@ function setTarotCardLocked(card, lock) {
         }
     }
 }
+function setTarotCardReverseLocked(card, lock) {
+    const cardDiv = getTarotCard(card);
+
+    if ((!cardDiv.classList.contains("reversable") && !cardDiv.getAttribute("ap-reverse-locked"))
+        || (cardDiv.classList.contains("floorlocked") && !cardDiv.getAttribute("ap-locked"))) {
+        return console.warn(`${TAP} Card ${card} is not reversable or is locked by game!`)
+    }
+
+    cardDiv.setAttribute("ap-reverse-locked", lock);
+    if (!cardDiv.classList.contains("reversable") && !lock && !cardDiv.classList.contains("floorlocked")) {
+        cardDiv.classList.add("reversable")
+    } else if (cardDiv.classList.contains("reversable") && lock) {
+        cardDiv.classList.remove("reversable")
+    }
+
+    const crystal1 = cardDiv.getElementsByClassName("zenith_card_crystal")[0];
+    const crystal2 = cardDiv.getElementsByClassName("zenith_card_crystal_dark")[0];
+    const progressDiv = cardDiv.getElementsByClassName("zenith_card_progress")[0];
+    if (lock) {
+        // TODO add our own progress counter, like the below
+        // <div class="zenith_card_progress"><sub>00</sub>328<span> / 30000<span>M</span></span></div>
+        progressDiv.innerHTML = `<img src="{{archipelago_logo.png}}" height="16px" width="16px"> LOCKED`
+        if (!cardDiv.classList.contains("floorlocked")) progressDiv.classList.remove("hidden")
+
+        crystal1.classList.add("hidden")
+        crystal2.classList.add("hidden")
+    } else {
+        crystal1.classList.remove("hidden")
+        crystal2.classList.remove("hidden")
+        progressDiv.classList.add("hidden")
+    }
+}
 
 waitUntil(
     () => { 
@@ -263,6 +364,7 @@ waitUntil(
     }, 
     () => {
         console.log(`${TAP} Menus loaded!`)
+        menuLoaded = true;
         const menu = document.getElementById("tetrap-client-area");
         menu.classList.add("after-menu-load");
         
@@ -273,6 +375,7 @@ waitUntil(
 client.messages.on("message", (content) => {
     const chatMessages = document.getElementById("ap-chat-messages")
     const messageElement = document.createElement("p")
+    // TODO fix newlines, and prevent other tags
     messageElement.innerHTML = content
     messageElement.classList.add("ap-chat-message")
     chatMessages.appendChild(messageElement)
