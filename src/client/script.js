@@ -159,10 +159,14 @@ function setInStorage(key, value) {
     localStorage.setItem("tetr-ap-data", JSON.stringify(allData));
 }
 
-function createAPNotification(text, color, timeout = 5000) {
+function createAPNotification(text, {
+    color = "#888888", 
+    backgroundColor = "#060606dd",
+    timeout = 5000
+    }) {
     const notification = document.createElement("div");
     notification.classList.add("ns", "notification", "has_image");
-    notification.style = `--pri: ${color}; --sec: #000; border-color: ${color}; background-color: rgba(6, 6, 6, 0.867); color: white;`;
+    notification.style = `--pri: ${color}; --sec: #000; border-color: ${color}; background-color: ${backgroundColor}; color: white;`;
     notification.innerHTML = `<img class="notification_icon" src="{{archipelago_logo.png}}"><p>${text.toLowerCase()}</p>`;
     document.getElementById("notifications").appendChild(notification);
 
@@ -208,12 +212,14 @@ async function onZenithFinish() {
             notifText = `Found your ${item.name}! (${item.locationName})`
         }
 
-        let color = "#888888";
-        if (item.filler) color = "#01d2d3";
-        if (item.useful) color = "#6d8be8";
-        if (item.progression) color = "#ae98ee";
-        if (item.trap) color = "#fa8072";
-        createAPNotification(notifText, color);
+        let notifSettings = { color: "#888888", backgroundColor: "#060606dd", timeout: 5000 };
+        if (item.filler) notifSettings.color = "#01d2d3";
+        if (item.useful) notifSettings.color = "#6d8be8";
+        if (item.progression) {
+            notifSettings = { color: "#ae98ee", backgroundColor: "#584e74c7", timeout: 12000 };
+        }
+        if (item.trap) notifSettings.color = "#fa8072";
+        createAPNotification(notifText, notifSettings);
 
         foundChecks.push(checkID);
         await client.check(checkID);
