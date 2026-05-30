@@ -103,6 +103,7 @@ waitUntil(
 
         document.getElementById("ap-disconnect").onclick = () => {
             setInStorage("foundChecks", foundChecks);
+            unlockCards();
             client.socket.disconnect()
             document.getElementById("ap-chat-area").classList.add("disabled")
             connectionStatus.innerHTML = ""
