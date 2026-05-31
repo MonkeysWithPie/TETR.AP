@@ -85,7 +85,6 @@ function getFloor(height) {
 
 const client = new Client();
 
-let foundChecks = [];
 let menuLoaded = false;
 
 waitUntil(
@@ -113,7 +112,6 @@ waitUntil(
                     document.getElementById("ap-connect-form").classList.add("disabled")
                     connectionStatus.innerHTML = `Connected as ${inputs["ap-slot"].value}!`
                     shortStatus.innerHTML = `Connected as ${inputs["ap-slot"].value}`
-                    foundChecks = client.room.checkedLocations;
                     
                     waitUntil(() => menuLoaded, relockCards);
                 })
@@ -156,10 +154,6 @@ waitUntil(
         }
     }
 )
-
-window.onbeforeunload = () => {
-    setInStorage("foundChecks", foundChecks);
-}
 
 function getFromStorage(key) {
     if (!client.authenticated) return null;
@@ -237,7 +231,7 @@ async function onZenithFinish() {
 
     for (let i = 2; i <= floor; i++) {
         const checkID = i + (comboNum * 100);
-        if (foundChecks.includes(checkID)) {
+        if (client.room.checkedLocations.includes(checkID)) {
             console.log(`${TAP} Already found check ${checkID}`)
             continue;
         }
@@ -263,7 +257,6 @@ async function onZenithFinish() {
         if (item.trap) notifSettings.color = "#fa8072";
         createAPNotification(notifText, notifSettings);
 
-        foundChecks.push(checkID);
         await client.check(checkID);
     }
 
