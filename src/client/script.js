@@ -31,14 +31,43 @@ function getComboAndNum(mods) {
         "The Warlock": ["allspin_reversed"],
         "The Emperor": ["expert"],
         "The Tyrant": ["expert_reversed"],
+        "Deadlock": ["nohold", "doublehole", "messy"],
+        "The Starving Artist": ["nohold", "allspin"],
+        "The Grandmaster": ["gravity", "invisible"],
+        "The Con Artist": ["expert", "volatile", "allspin"],
+        "Divine Mastery": ["expert","doublehole","volatile","messy"],
+        "A Modern Classic": ["nohold","gravity"],
+        "Emperor's Decadence": ["expert", "doublehole", "nohold"],
+        "Swamp Water": ["nohold", "messy", "gravity", "volatile", "doublehole", "invisible", "allspin", "expert"],
     }   
 
-    for (let i = 0; i < Object.keys(combos).length; i++) {
+    const comboCount = Object.keys(combos).length;
+
+    function arraysEqual(a, b) {
+        if (a === b) return true;
+        if (a == null || b == null) return false;
+        if (a.length !== b.length) return false;
+
+        a.sort();
+        b.sort();
+
+        for (var i = 0; i < a.length; ++i) {
+            if (a[i] !== b[i]) return false;
+        }
+        return true;
+    }
+
+    for (let i = 0; i < comboCount; i++) {
         const comboName = Object.keys(combos)[i];
         const comboMods = combos[comboName];
-        if (JSON.stringify(comboMods) === JSON.stringify(mods)) {
+        
+        if (arraysEqual(mods, comboMods)) {
             return { comboName, comboNum: i }
         }
+    }
+
+    if (mods.length === 7) {
+        return { comboName: "Swamp Water Lite", comboNum: comboCount + 1 }
     }
 
     return { comboName: null, comboNum: null };
@@ -48,7 +77,7 @@ function getFloor(height) {
     const thresholds = [0, 50, 150, 300, 450, 650, 850, 1100, 1350, 1650]
     for (let i = 0; i < thresholds.length; i++) {
         if (height < thresholds[i]) {
-            return i + 1;
+            return i;
         }
     }
     return 10;
@@ -84,7 +113,7 @@ waitUntil(
                     document.getElementById("ap-connect-form").classList.add("disabled")
                     connectionStatus.innerHTML = `Connected as ${inputs["ap-slot"].value}!`
                     shortStatus.innerHTML = `Connected as ${inputs["ap-slot"].value}`
-                    foundChecks = getFromStorage("foundChecks") || [];
+                    foundChecks = client.room.checkedLocations;
                     
                     waitUntil(() => menuLoaded, relockCards);
                 })
@@ -102,9 +131,11 @@ waitUntil(
         }
 
         document.getElementById("ap-disconnect").onclick = () => {
-            setInStorage("foundChecks", foundChecks);
-            unlockCards();
             client.socket.disconnect()
+        }
+
+        client.socket.on("disconnected", () => {
+            unlockCards();
             document.getElementById("ap-chat-area").classList.add("disabled")
             connectionStatus.innerHTML = ""
             shortStatus.innerHTML = "Not connected"
@@ -112,7 +143,7 @@ waitUntil(
             const inputs = document.getElementById("ap-connect-form").elements
             for (const input of inputs) { input.removeAttribute("disabled"); };
             document.getElementById("ap-connect-form").classList.remove("disabled")
-        }
+        })
 
         document.getElementById("ap-collapse").onclick = (e) => {
             const area = document.getElementById("tetrap-client-area")
@@ -137,6 +168,10 @@ function getFromStorage(key) {
     if (!allData) return null;
 
     const data = JSON.parse(allData);
+    
+    if (!data[client.room.seedName]) return null;
+    if (!data[client.room.seedName][client.name]) return null;
+
     return data[client.room.seedName][client.name][key];
 }
 function setInStorage(key, value) {
@@ -202,10 +237,16 @@ async function onZenithFinish() {
 
     for (let i = 2; i <= floor; i++) {
         const checkID = i + (comboNum * 100);
-        if (foundChecks.includes(checkID)) continue;
+        if (foundChecks.includes(checkID)) {
+            console.log(`${TAP} Already found check ${checkID}`)
+            continue;
+        }
 
         const itemData = await client.scout([checkID], 0);
-        if (!itemData[0]) continue;
+        if (!itemData[0]) {
+            console.log(`${TAP} No item found at check ${checkID}`)
+            continue;
+        }
         const item = itemData[0];
 
         let notifText = `Sent ${item.name} to ${item.receiver}! (${item.locationName})`;
@@ -217,7 +258,7 @@ async function onZenithFinish() {
         if (item.filler) notifSettings.color = "#01d2d3";
         if (item.useful) notifSettings.color = "#6d8be8";
         if (item.progression) {
-            notifSettings = { color: "#ae98ee", backgroundColor: "#584e74c7", timeout: 12000 };
+            notifSettings = { color: "#ae98ee", backgroundColor: "#38314dc7", timeout: 12000 };
         }
         if (item.trap) notifSettings.color = "#fa8072";
         createAPNotification(notifText, notifSettings);
@@ -321,6 +362,13 @@ function setTarotCardLocked(card, lock) {
 
     const idToNameMap = {
         "nohold": "No Hold",
+        "messy": "Messier Garbage",
+        "gravity": "Gravity",
+        "volatile": "Volatile Garbage",
+        "doublehole": "Double Hole Garbage",
+        "invisible": "Invisible",
+        "allspin": "All-Spin",
+        "expert": "Expert Mode",
     }
 
     const infos = document.getElementById("zenith_deck_infos");
@@ -340,9 +388,11 @@ function setTarotCardReverseLocked(card, lock) {
     }
 
     cardDiv.setAttribute("ap-reverse-locked", lock);
-    if (!cardDiv.classList.contains("reversable") && !lock && !cardDiv.classList.contains("floorlocked")) {
+
+    const actuallyLocked = cardDiv.classList.contains("floorlocked") || lock;
+    if (!cardDiv.classList.contains("reversable") && !actuallyLocked) {
         cardDiv.classList.add("reversable")
-    } else if (cardDiv.classList.contains("reversable") && lock) {
+    } else if (cardDiv.classList.contains("reversable") && actuallyLocked) {
         cardDiv.classList.remove("reversable")
     }
 
@@ -358,7 +408,11 @@ function setTarotCardReverseLocked(card, lock) {
         crystal1.classList.add("hidden")
         crystal2.classList.add("hidden")
     } else {
-        crystal1.classList.remove("hidden")
+        if (!actuallyLocked) {
+            crystal1.classList.remove("hidden")
+        } else {
+            crystal1.classList.add("hidden")
+        }
         crystal2.classList.remove("hidden")
         progressDiv.classList.add("hidden")
     }
@@ -390,5 +444,6 @@ client.messages.on("message", (content) => {
 
 client.items.on("itemsReceived", (items) => {
     console.log(`${TAP} Received items: ${items}`)
+    relockCards();
 })
 })()
