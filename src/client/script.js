@@ -3,7 +3,7 @@
 
 const TAP = "[TETR.AP]"
 
-const { Client } = await import("https://unpkg.com/archipelago.js/dist/archipelago.min.js");
+const { Client, clientStatuses } = await import("https://unpkg.com/archipelago.js/dist/archipelago.min.js");
 
 async function waitUntil(predicate, trigger, interval = 200) {
     while (!await predicate()) {
@@ -86,6 +86,7 @@ function getFloor(height) {
 const client = new Client();
 
 let menuLoaded = false;
+let yamlOptions = null;
 
 waitUntil(
     () => document.body,
@@ -192,11 +193,23 @@ function setInStorage(key, value) {
 function createAPNotification(text, {
     color = "#888888", 
     backgroundColor = "#060606dd",
-    timeout = 5000
+    timeout = 5000,
+    gradient = false,
     }) {
     const notification = document.createElement("div");
     notification.classList.add("ns", "notification", "has_image");
-    notification.style = `--pri: ${color}; --sec: #000; border-color: ${color}; background-color: ${backgroundColor}; color: white;`;
+    let style = 
+`--pri: ${color};
+--sec: #000;
+border-color: ${color};
+background-color: ${backgroundColor};
+color: white;`;
+    
+    if (gradient) {
+        style += `border-image: ${color} 1;`;
+    }
+
+    notification.style = style;
     notification.innerHTML = `<img class="notification_icon" src="{{archipelago_logo.png}}"><p>${text.toLowerCase()}</p>`;
     document.getElementById("notifications").appendChild(notification);
 
@@ -435,8 +448,30 @@ client.messages.on("message", (content) => {
     chatMessages.appendChild(messageElement)
 })
 
-client.items.on("itemsReceived", (items) => {
+client.items.on("itemsReceived", async (items) => {
     console.log(`${TAP} Received items: ${items}`)
     relockCards();
+
+    // check for wincon
+    const selfStatus = await client.players.self.fetchStatus()
+    if (selfStatus === clientStatuses.goal) return; // already won
+
+    let aches = 0;
+    for (const item of client.items.received) {
+        if (item.name === "Achievement") aches++;
+    }
+    console.log(`${TAP} Achievements found: ${aches}/${yamlOptions.goal_count}`)
+
+    if (aches >= yamlOptions.goal_count) {
+        client.updateStatus(clientStatuses.goal);
+        createAPNotification(`you've reached your goal of ${yamlOptions.goal_count} achievements!`, 
+            { color: "linear-gradient(90deg, #fc4444 0%, #fafa48 20%, #80ff4a 40%, #29d1ff 60%, #8f26ff 80%, #fc49e2 100%)", backgroundColor: "#2c4d4dc7", timeout: 30000, gradient: true }
+        );
+    }
+})
+
+client.socket.on("connected", (packet) => {
+    yamlOptions = packet.slot_data;
+    console.log(`${TAP} Connected to AP server! ${JSON.stringify(yamlOptions)}`)
 })
 })()
