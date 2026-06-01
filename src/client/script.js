@@ -224,7 +224,7 @@ color: white;`;
 async function onZenithFinish() {
     if (!client.authenticated) return;
 
-    const finalScore = Number(document.getElementById("zenith_result").innerText.replace("M","").trim());
+    const finalScore = Number(document.getElementById("zenith_result").innerText.replace("M","").replace(",","").trim());
     const modImages = document.getElementById("zenith_result").getElementsByClassName("mods")[0].children;
     const mods = [];
     for (const img of modImages) {
