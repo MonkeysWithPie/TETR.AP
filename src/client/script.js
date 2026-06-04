@@ -102,6 +102,8 @@ waitUntil(
         const shortStatus = document.getElementById("ap-shortstatus")
         const chatInput = document.getElementById("ap-chat-input")
 
+        document.getElementById("ap-server").value = "archipelago.gg:12345";
+
         document.getElementById("ap-connect-form").onsubmit = (e) => {
             e.preventDefault()
             const inputs = e.srcElement.elements
