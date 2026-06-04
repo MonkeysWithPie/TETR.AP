@@ -66,6 +66,7 @@ function getComboAndNum(mods) {
         }
     }
 
+    // SWL is a special case since it requires exactly 7 mods
     if (mods.length === 7) {
         return { comboName: "Swamp Water Lite", comboNum: comboCount + 1 }
     }
@@ -94,6 +95,7 @@ waitUntil(
         const apMenu = document.createElement("div");
         apMenu.id = "tetrap-client-area";
         apMenu.innerHTML = `{{clientbox.html}}`; 
+        // placed here in the DOM so it is shown always except during screen transitions
         document.body.insertBefore(apMenu, document.getElementById("nofocus"));
 
         const connectionStatus = document.getElementById("ap-status")
@@ -156,6 +158,11 @@ waitUntil(
     }
 )
 
+// unused for now, but storage such as reverse mod progress
+// will use these so that progress is saved between sessions
+
+// since someone might play on the same room with two different sessions,
+// data is saved per room and per player
 function getFromStorage(key) {
     if (!client.authenticated) return null;
 
@@ -194,10 +201,10 @@ function createAPNotification(text, {
     color = "#888888", 
     backgroundColor = "#060606dd",
     timeout = 5000,
-    gradient = false,
-    }) {
+    gradient = false, }) {
     const notification = document.createElement("div");
     notification.classList.add("ns", "notification", "has_image");
+
     let style = 
 `--pri: ${color};
 --sec: #000;
@@ -250,11 +257,13 @@ async function onZenithFinish() {
         }
 
         const itemData = await client.scout([checkID], 0);
-        if (!itemData[0]) {
+        const item = itemData[0];
+        // since the client (currently) does not know which settings were used,
+        // scouting the check may yield nothing depending on the YAML settings
+        if (!item) {
             console.log(`${TAP} No item found at check ${checkID}`)
             continue;
         }
-        const item = itemData[0];
 
         let notifText = `Sent ${item.name} to ${item.receiver}! (${item.locationName})`;
         if (item.receiver == client.name) {
@@ -272,8 +281,6 @@ async function onZenithFinish() {
 
         await client.check(checkID);
     }
-
-    relockCards();
 }
 
 const tarotCardMap = {
@@ -295,12 +302,10 @@ function unlockCards() {
 }
 function relockCards() {
     if (!client.authenticated) return;
-
-    const items = client.items.received;
     
     let unlocked = [];
 
-    for (const item of items) {
+    for (const item of client.items.received) {
         if (tarotCardMap[item.name]) {
             unlocked.push(tarotCardMap[item.name])
         }
@@ -319,14 +324,15 @@ function relockCards() {
 
 async function waitForZenithFinish() {
     waitUntil(() => {
-        return !document.getElementById("zenithmenu").classList.contains("rolledup")
+        return !document.getElementById("zenithmenu").classList.contains("rolledup") // zenithmenu shown and in results
             && !document.getElementById("zenithmenu").classList.contains("hidden")
-            && document.getElementById("menus").getAttribute("data-menu-type") === "zenith"
-            && document.getElementById("zenithmenu").classList.contains("inresults")
-            && document.getElementById("kuro").classList.contains("hidden")
+            &&  document.getElementById("zenithmenu").classList.contains("inresults")
+            &&  document.getElementById("menus").getAttribute("data-menu-type") === "zenith" // in the zenith menu
+            &&  document.getElementById("kuro").classList.contains("hidden") // not during a screen transition
     }, () => {
         onZenithFinish();
 
+        // make sure the menu is hidden so the same run isn't being registered multiple times
         waitUntil(() => 
             document.getElementById("zenithmenu").classList.contains("hidden"), 
             () => waitForZenithFinish()
@@ -348,9 +354,12 @@ function setTarotCardLocked(card, lock) {
     const cardDiv = getTarotCard(card);
 
     if (cardDiv.classList.contains("floorlocked") && !cardDiv.getAttribute("ap-locked")) {
+        // AFAIK it's not allowed to unlock cards that the player hasn't unlocked in main TETR.IO
+        // this shouldn't happen since YAML settings should only lock cards that aren't locked ingame
         return console.warn(`${TAP} Card ${card} is locked by game!`)
     }
 
+    // set an attribute so we know it's locked by AP, and can distinguish from game-locked cards
     cardDiv.setAttribute("ap-locked", lock);
     if (cardDiv.classList.contains("floorlocked") && !lock) {
         cardDiv.classList.remove("floorlocked")
@@ -414,11 +423,14 @@ function setTarotCardReverseLocked(card, lock) {
         crystal1.classList.add("hidden")
         crystal2.classList.add("hidden")
     } else {
+        // make the dark crystal appear if the reverse is unlocked but the standard card isn't,
+        // so the user knows when they've unlocked the reverse
         if (!actuallyLocked) {
             crystal1.classList.remove("hidden")
         } else {
             crystal1.classList.add("hidden")
         }
+
         crystal2.classList.remove("hidden")
         progressDiv.classList.add("hidden")
     }
@@ -442,6 +454,7 @@ waitUntil(
 client.messages.on("message", (content) => {
     const chatMessages = document.getElementById("ap-chat-messages")
     const messageElement = document.createElement("p")
+
     // TODO fix newlines, and prevent other tags
     messageElement.innerHTML = content
     messageElement.classList.add("ap-chat-message")
@@ -465,7 +478,8 @@ client.items.on("itemsReceived", async (items) => {
     if (aches >= yamlOptions.goal_count) {
         client.updateStatus(clientStatuses.goal);
         createAPNotification(`you've reached your goal of ${yamlOptions.goal_count} achievements!`, 
-            { color: "linear-gradient(90deg, #fc4444 0%, #fafa48 20%, #80ff4a 40%, #29d1ff 60%, #8f26ff 80%, #fc49e2 100%)", backgroundColor: "#2c4d4dc7", timeout: 30000, gradient: true }
+            { color: "linear-gradient(90deg, #fc4444 0%, #fafa48 20%, #80ff4a 40%, #29d1ff 60%, #8f26ff 80%, #fc49e2 100%)", 
+                backgroundColor: "#2c4d4dc7", timeout: 30000, gradient: true }
         );
     }
 })
