@@ -88,6 +88,8 @@ const client = new Client();
 
 let menuLoaded = false;
 let yamlOptions = null;
+let revProgresses = null;
+let expectLoginChecks = false;
 
 waitUntil(
     () => document.body,
@@ -110,15 +112,18 @@ waitUntil(
             for (const input of inputs) { input.setAttribute("disabled","true") }
             connectionStatus.innerHTML = "Connecting..."
 
+            expectLoginChecks = true;
             client.login(inputs["ap-server"].value, inputs["ap-slot"].value, "TETR.AP", { password: inputs["ap-password"].value })
                 .then(() => {
+                    revProgresses = getFromStorage("revProgresses") || {};
                     document.getElementById("ap-chat-area").classList.remove("disabled")
                     document.getElementById("ap-chat-messages").innerHTML = ""
                     document.getElementById("ap-connect-form").classList.add("disabled")
                     connectionStatus.innerHTML = `Connected as ${inputs["ap-slot"].value}!`
                     shortStatus.innerHTML = `Connected as ${inputs["ap-slot"].value}`
-                    
-                    waitUntil(() => menuLoaded, relockCards);
+
+                    // wait for login checks to go through
+                    waitUntil(() => menuLoaded && !expectLoginChecks, relockCards);
                 })
                 .catch((e) => {
                     for (const input of inputs) { input.removeAttribute("disabled"); };
@@ -139,6 +144,8 @@ waitUntil(
 
         client.socket.on("disconnected", () => {
             unlockCards();
+            setInStorage("revProgresses", revProgresses);
+            revProgresses = null;
             document.getElementById("ap-chat-area").classList.add("disabled")
             connectionStatus.innerHTML = ""
             shortStatus.innerHTML = "Not connected"
@@ -160,13 +167,10 @@ waitUntil(
     }
 )
 
-// unused for now, but storage such as reverse mod progress
-// will use these so that progress is saved between sessions
-
 // since someone might play on the same room with two different sessions,
 // data is saved per room and per player
 function getFromStorage(key) {
-    if (!client.authenticated) return null;
+    if (!client.room.seedName || !client.name) return null;
 
     const allData = localStorage.getItem("tetr-ap-data");
     if (!allData) return null;
@@ -179,7 +183,9 @@ function getFromStorage(key) {
     return data[client.room.seedName][client.name][key];
 }
 function setInStorage(key, value) {
-    if (!client.authenticated) return;
+    // archipelago.js remembers last room and player even after a DC,
+    // so we can still save data after disconnecting and not before
+    if (!client.room.seedName || !client.name) return;
 
     let allData = localStorage.getItem("tetr-ap-data");
     if (!allData) {
@@ -241,6 +247,11 @@ async function onZenithFinish() {
     }
 
     console.log(`${TAP} Zenith run finished! ${finalScore}m, mods: ${mods}`)
+    for (const mod of mods) {
+        revProgresses[mod] = revProgresses[mod] || 0;
+        revProgresses[mod] += finalScore;
+    }
+
     const { comboName, comboNum } = getComboAndNum(mods);
     if (!comboName) {
         relockCards();
@@ -251,6 +262,7 @@ async function onZenithFinish() {
     const floor = getFloor(finalScore);
     console.log(`${TAP} Combo: ${comboName} (num ${comboNum}), Floor: ${floor}`)
 
+    let checked = false;
     for (let i = 2; i <= floor; i++) {
         const checkID = i + (comboNum * 100);
         if (client.room.checkedLocations.includes(checkID)) {
@@ -266,6 +278,7 @@ async function onZenithFinish() {
             console.log(`${TAP} No item found at check ${checkID}`)
             continue;
         }
+        checked = true;
 
         let notifText = `Sent ${item.name} to ${item.receiver}! (${item.locationName})`;
         if (item.receiver == client.name) {
@@ -283,6 +296,9 @@ async function onZenithFinish() {
 
         await client.check(checkID);
     }
+
+    // checks will relock cards as it counts as receiving an item
+    if (!checked) relockCards();
 }
 
 const tarotCardMap = {
@@ -313,7 +329,11 @@ function relockCards() {
         }
 
         const reverse = item.name.replace("Reversed ","");
-        if (tarotCardMap[reverse] && reverse !== item.name) {
+        if (
+            tarotCardMap[reverse] && 
+            reverse !== item.name && 
+            (revProgresses[reverse] || 0) >= yamlOptions.reverse_height
+        ) {
             unlocked.push(`${tarotCardMap[reverse]}_reversed`)
         }
     }
@@ -406,7 +426,8 @@ function setTarotCardReverseLocked(card, lock) {
 
     cardDiv.setAttribute("ap-reverse-locked", lock);
 
-    const actuallyLocked = cardDiv.classList.contains("floorlocked") || lock;
+    const floorLocked = cardDiv.classList.contains("floorlocked");
+    const actuallyLocked = floorLocked || lock;
     if (!cardDiv.classList.contains("reversable") && !actuallyLocked) {
         cardDiv.classList.add("reversable")
     } else if (cardDiv.classList.contains("reversable") && actuallyLocked) {
@@ -417,17 +438,28 @@ function setTarotCardReverseLocked(card, lock) {
     const crystal2 = cardDiv.getElementsByClassName("zenith_card_crystal_dark")[0];
     const progressDiv = cardDiv.getElementsByClassName("zenith_card_progress")[0];
     if (lock) {
-        // TODO add our own progress counter, like the below
-        // <div class="zenith_card_progress"><sub>00</sub>328<span> / 30000<span>M</span></span></div>
-        progressDiv.innerHTML = `<img src="{{archipelago_logo.png}}" height="16px" width="16px"> LOCKED`
-        if (!cardDiv.classList.contains("floorlocked")) progressDiv.classList.remove("hidden")
+        const progress = revProgresses[card] || 0;
+        if (progress < yamlOptions.reverse_height && progress > 0) {
+            let text = `<img src="{{archipelago_logo.png}}" height="16px" width="16px"> `
+            progressDiv.classList.remove("hidden")
+            text += `<sub>${"0".repeat(yamlOptions.reverse_height.length - String(progress).length)}</sub>`
+            text += `${Math.floor(progress)}`
+            text += `<span> / ${yamlOptions.reverse_height}<span>M</span></span>`
+
+            progressDiv.innerHTML = text;
+        } else if (yamlOptions.reverse_height !== 0 && progress <= 0) {
+            progressDiv.classList.add("hidden")
+        } else {
+            progressDiv.innerHTML = `<img src="{{archipelago_logo.png}}" height="16px" width="16px"> LOCKED`
+        }
+        if (!cardDiv.classList.contains("floorlocked") && progress > 0) progressDiv.classList.remove("hidden")
 
         crystal1.classList.add("hidden")
         crystal2.classList.add("hidden")
     } else {
         // make the dark crystal appear if the reverse is unlocked but the standard card isn't,
         // so the user knows when they've unlocked the reverse
-        if (!actuallyLocked) {
+        if (!floorLocked && !lock) {
             crystal1.classList.remove("hidden")
         } else {
             crystal1.classList.add("hidden")
@@ -465,7 +497,31 @@ client.messages.on("message", (content) => {
 
 client.items.on("itemsReceived", async (items) => {
     console.log(`${TAP} Received items: ${items}`)
-    relockCards();
+
+    // TODO this will trigger multiple times if the player reconnects repeatedly,
+    // so we need to remember the index of items we got last. maybe archipelago.js has an API for that?
+    if (items.some(item => item.name.includes("Progress"))) {
+        const matcher = /\+1km Reversed (.*) Progress/
+
+        for (const item of items) {
+            if (!matcher.test(item.name)) continue;
+
+            const cardName = tarotCardMap[item.name.match(matcher)[1]];
+            if (!cardName) continue;
+            waitUntil(() => revProgresses, () => {
+                if (!revProgresses[cardName]) revProgresses[cardName] = 0;
+                revProgresses[cardName] += 1000;
+                relockCards();
+            });
+        }
+    }
+    
+    // if menu isn't loaded, cards will be relocked when it is
+    // checks may appear before login is finished, and login relocks cards anyways, so skip for now
+    if (menuLoaded && !expectLoginChecks) relockCards(); 
+    if (expectLoginChecks) expectLoginChecks = false;
+
+    if (!items.some(item => item.name === "Achievement")) return;
 
     // check for wincon
     const selfStatus = await client.players.self.fetchStatus()
