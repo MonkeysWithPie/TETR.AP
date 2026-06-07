@@ -496,10 +496,14 @@ client.messages.on("message", (content) => {
 })
 
 client.items.on("itemsReceived", async (items) => {
-    console.log(`${TAP} Received items: ${items}`)
+    const lastIndex = getFromStorage("lastSeenItemIndex") || 0;
+    if (expectLoginChecks) {
+        items = items.slice(lastIndex);
+    }
+    setInStorage("lastSeenItemIndex", items.length + lastIndex);
 
-    // TODO this will trigger multiple times if the player reconnects repeatedly,
-    // so we need to remember the index of items we got last. maybe archipelago.js has an API for that?
+    console.log(`${TAP} Received items: ${items}`)
+    
     if (items.some(item => item.name.includes("Progress"))) {
         const matcher = /\+1km Reversed (.*) Progress/
 
@@ -511,7 +515,7 @@ client.items.on("itemsReceived", async (items) => {
             waitUntil(() => revProgresses, () => {
                 if (!revProgresses[cardName]) revProgresses[cardName] = 0;
                 revProgresses[cardName] += 1000;
-                relockCards();
+                if (menuLoaded) relockCards();
             });
         }
     }
