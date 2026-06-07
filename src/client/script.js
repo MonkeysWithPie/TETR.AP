@@ -90,6 +90,7 @@ let menuLoaded = false;
 let yamlOptions = null;
 let revProgresses = null;
 let expectLoginChecks = false;
+let expectedChecks = [];
 
 waitUntil(
     () => document.body,
@@ -283,6 +284,7 @@ async function onZenithFinish() {
         let notifText = `Sent ${item.name} to ${item.receiver}! (${item.locationName})`;
         if (item.receiver == client.name) {
             notifText = `Found your ${item.name}! (${item.locationName})`
+            expectedChecks.push(checkID);
         }
 
         let notifSettings = { color: "#888888", backgroundColor: "#060606dd", timeout: 5000 };
@@ -517,6 +519,40 @@ client.items.on("itemsReceived", async (items) => {
                 revProgresses[cardName] += 1000;
                 if (menuLoaded) relockCards();
             });
+        }
+    }
+
+    for (const item of items) {
+        if (expectedChecks.includes(item.locationId)) continue; // already notified
+
+        let sender = item.sender;
+        // slot being 0 refers to the server
+        // see https://github.com/ArchipelagoMW/Archipelago/blob/main/docs/network%20protocol.md#networkplayer
+        if (sender.slot === 0) sender = "Cheat console";
+
+        let important = false;
+        if (tarotCardMap[item.name] || tarotCardMap[item.name.replace("Reversed ","")]) important = true;
+
+        if (client.items.received.filter(pastItem => pastItem.name === item.name).length > 1 && important) {
+            // this item was already received, so it's likely that it was cheated in earlier on
+            // in this case, we don't notify at all
+            continue;
+        }
+
+        if (item.name === "Achievement") {
+            createAPNotification(`${sender} found one of your Achievements!`, 
+                { color: "#866de8", backgroundColor: "#1b1825bc" }
+            );
+        }
+        else if (important) { // item.progression is not populated unless scouted, so check for tarot cards manually
+            createAPNotification(`${sender} found your ${item.name}!`, 
+                { color: "#ae98ee", backgroundColor: "#38314dc7", timeout: 12000 }
+             );
+        }
+        else {
+            createAPNotification(`${sender} found your ${item.name}`,
+                { color: "#888888", backgroundColor: "#060606dd" }
+            );
         }
     }
     
