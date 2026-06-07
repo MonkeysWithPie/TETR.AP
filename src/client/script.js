@@ -491,10 +491,18 @@ client.messages.on("message", (content) => {
     const chatMessages = document.getElementById("ap-chat-messages")
     const messageElement = document.createElement("p")
 
-    // TODO fix newlines, and prevent other tags
-    messageElement.innerHTML = content
+    messageElement.textContent = content
     messageElement.classList.add("ap-chat-message")
+    // don't scroll if the user is scrolled up...
+    let shouldScroll = chatMessages.scrollTop + chatMessages.clientHeight >= chatMessages.scrollHeight - 20;
+    if (content.startsWith(`${client.name}:`)) {
+        shouldScroll = true; // ...unless it's their own message
+    }
+
     chatMessages.appendChild(messageElement)
+    if (shouldScroll) {
+        chatMessages.scroll({ top: chatMessages.scrollHeight, behavior: "smooth" })
+    }
 })
 
 client.items.on("itemsReceived", async (items) => {
