@@ -487,12 +487,48 @@ waitUntil(
     }
 )
 
-client.messages.on("message", (content) => {
+client.messages.on("message", (content, nodes) => {
     const chatMessages = document.getElementById("ap-chat-messages")
-    const messageElement = document.createElement("p")
+    const messageElement = document.createElement("div")
 
-    messageElement.textContent = content
-    messageElement.classList.add("ap-chat-message")
+    for (const node of nodes) {
+        const nodeElement = document.createElement("span");
+        
+        // https://archipelago.js.org/stable/classes/index.TextualMessageNode.html
+        // not sure why these are separate since they share the same class? 
+        if (node.type === "entrance") node.type = "text";
+        
+        nodeElement.textContent = node.text;
+        if (node.type === "item") {
+            if (node.item.filler) nodeElement.style.color = "#01d2d3";
+            if (node.item.useful) nodeElement.style.color = "#6d8be8";
+            if (node.item.progression) nodeElement.style.color = "#ae98ee";
+            if (node.item.trap) nodeElement.style.color = "#fa8072";
+        }
+        else if (node.type === "player") {
+            if (node.player.name === client.name) {
+                nodeElement.style.color = "#ba70ff";
+            }
+        }
+        else if (node.type === "color") {
+            // see https://archipelago.js.org/stable/types/index.API.ValidJSONColorType.html
+            if (node.color === "bold") {
+                nodeElement.style.fontWeight = "bold";
+            } else if (node.color === "underline") {
+                nodeElement.style.textDecoration = "underline";
+            } else if (node.color.includes("_bg")) {
+                nodeElement.style.backgroundColor = node.color.replace("_bg", "");
+            } else {
+                nodeElement.style.color = node.color;
+            }
+        }
+
+        nodeElement.classList.add(`ap-${node.type}-message`);
+        messageElement.appendChild(nodeElement);
+    }
+
+    // messageElement.textContent = content
+    messageElement.classList.add("ap-message")
     // don't scroll if the user is scrolled up...
     let shouldScroll = chatMessages.scrollTop + chatMessages.clientHeight >= chatMessages.scrollHeight - 20;
     if (content.startsWith(`${client.name}:`)) {
