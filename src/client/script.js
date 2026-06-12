@@ -120,7 +120,8 @@ waitUntil(
                     document.getElementById("ap-chat-area").classList.remove("disabled")
                     document.getElementById("ap-chat-messages").innerHTML = ""
                     document.getElementById("ap-connect-form").classList.add("disabled")
-                    connectionStatus.innerHTML = `Connected as ${inputs["ap-slot"].value}!`
+                    connectionStatus.innerHTML = `Connected`
+                    document.getElementById("ap-username").innerHTML = inputs["ap-slot"].value
                     shortStatus.innerHTML = `Connected as ${inputs["ap-slot"].value}`
 
                     // wait for login checks to go through
@@ -148,7 +149,8 @@ waitUntil(
             setInStorage("revProgresses", revProgresses);
             revProgresses = null;
             document.getElementById("ap-chat-area").classList.add("disabled")
-            connectionStatus.innerHTML = ""
+            connectionStatus.innerHTML = "Disconnected"
+            document.getElementById("ap-username").innerHTML = ""
             shortStatus.innerHTML = "Not connected"
 
             const inputs = document.getElementById("ap-connect-form").elements

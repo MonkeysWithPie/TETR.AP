@@ -20,7 +20,8 @@
     #ap-connect-form {
         margin: 0px;
     }
-    #ap-connect-form.disabled {
+
+    .ap-tab.disabled {
         display: none;
     }
 
@@ -32,9 +33,6 @@
         height: 200px;
         overflow: auto;
         padding: 3px;
-    }
-    #ap-chat-area.disabled {
-        display: none;
     }
     .ap-message {
         padding: 2px;
@@ -54,22 +52,26 @@
     #ap-chat-input {
         width: calc(100% - 50px);
     }
-
-    #ap-status {
-        margin: 5px 0px;
-    }
-
+    
     header.tetrap {
         display: flex;
         background-color: #99f;
         padding: 2px;
-        margin: 2px;
         align-items: center;
     }
     p.tetrap {
-        margin: 0px 5px;
+        margin: 0px 4px;
         font-weight: bold;
     }
+    #ap-status {
+        margin-left: auto;
+        font-size: smaller;
+        font-weight: normal;
+    }
+    #ap-username {
+        font-size: smaller;
+    }
+
     #ap-collapse {
         border: none;
         background-color: #77777733;
@@ -86,15 +88,16 @@
     #tetrap-client-area.collapsed:hover {
         opacity: 1;
     }
-    #tetrap-client-area.collapsed #ap-chat-area {
-        display: none;
-    }
-    #tetrap-client-area.collapsed #ap-connect-form {
+    #tetrap-client-area.collapsed .ap-tab {
         display: none;
     }
     #tetrap-client-area.collapsed #ap-status {
         display: none;
     }
+    #tetrap-client-area.collapsed #ap-username {
+        display: none;
+    }
+
     #ap-shortstatus {
         display: none;
     }
@@ -107,9 +110,12 @@
 <header class="tetrap">
     <button id="ap-collapse">▶</button>
     <p class="tetrap">TETR.AP client</p>
+    <p class="tetrap" id="ap-status"></p>
+    <p class="tetrap" id="ap-username"></p>
 </header>
+<p id="ap-shortstatus">Not connected</p>
 
-<form id="ap-connect-form">
+<form id="ap-connect-form" class="ap-tab">
     <label for="server">Server:</label>
     <input id="ap-server" type="text" placeholder="archipelago.gg:12345" required>
     <br>
@@ -121,10 +127,8 @@
     <br>
     <input type="submit" value="Connect">
 </form>
-<p id="ap-status"></p>
-<p id="ap-shortstatus">Not connected</p>
 
-<div id="ap-chat-area" class="disabled">
+<div id="ap-chat-area" class="ap-tab disabled">
     <div id="ap-chat-messages"></div>
     <div id="ap-chat-controls">
         <form onsubmit="return false;">
