@@ -50,7 +50,8 @@
     }
 
     #ap-chat-input {
-        width: calc(100% - 50px);
+        width: 100%;
+        box-sizing: border-box;
     }
     
     header.tetrap {
@@ -70,6 +71,9 @@
     }
     #ap-username {
         font-size: smaller;
+    }
+    #ap-username:empty {
+        display: none;
     }
 
     #ap-collapse {
@@ -131,10 +135,7 @@
 <div id="ap-chat-area" class="ap-tab disabled">
     <div id="ap-chat-messages"></div>
     <div id="ap-chat-controls">
-        <form onsubmit="return false;">
-            <input id="ap-chat-input" type="text" placeholder="type a message..."> 
-            <input id="ap-chat-send" type="submit" value="Send">
-        </form>
+        <input id="ap-chat-input" type="text" placeholder="type a message, press enter to send..." autocomplete="off">
         <input id="ap-disconnect" type="button" value="Disconnect">
     </div>
 </div>

@@ -134,10 +134,13 @@ waitUntil(
                 })
         }
 
-        document.getElementById("ap-chat-send").onclick = () => {
-            if (chatInput.value.trim() === "") return;
-            client.messages.say(chatInput.value)
-            chatInput.value = ""
+        document.getElementById("ap-chat-input").onkeypress = (e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                if (chatInput.value.trim() === "") return;
+                client.messages.say(chatInput.value)
+                chatInput.value = ""
+            }
         }
 
         document.getElementById("ap-disconnect").onclick = () => {
