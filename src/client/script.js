@@ -104,25 +104,55 @@ waitUntil(
         const connectionStatus = document.getElementById("ap-status")
         const shortStatus = document.getElementById("ap-shortstatus")
         const chatInput = document.getElementById("ap-chat-input")
+        const connectButton = document.getElementById("ap-connect")
+
+        const tabs = document.getElementsByClassName("ap-tab");
+        for (const tab of tabs) {
+            const tabName = tab.getAttribute("data-tab-name");
+
+            const button = document.createElement("div");
+            button.classList.add("ap-tab-button");
+            if (tabName === "connect") button.classList.add("active");
+
+            button.innerHTML = tab.getAttribute("data-tab-name");
+            button.onclick = () => setTab(tabName);
+
+            document.getElementById("ap-nav").appendChild(button);
+        }
+        const filler = document.createElement("div");
+        filler.style.flexGrow = "1";
+        filler.style.borderBottom = "1px solid black";
+        document.getElementById("ap-nav").appendChild(filler);
 
         document.getElementById("ap-server").value = "archipelago.gg:12345";
 
-        document.getElementById("ap-connect-form").onsubmit = (e) => {
+        connectButton.onclick = (e) => {
             e.preventDefault()
-            const inputs = e.srcElement.elements
+            if (client.authenticated) {
+                connectionStatus.innerHTML = "Disconnecting..."
+                connectButton.setAttribute("disabled","true")
+                client.socket.disconnect();
+                return;
+            }
+
+            const inputs = document.getElementById("ap-connect-form").elements
             for (const input of inputs) { input.setAttribute("disabled","true") }
+            connectButton.setAttribute("disabled","true")
             connectionStatus.innerHTML = "Connecting..."
 
             expectLoginChecks = true;
             client.login(inputs["ap-server"].value, inputs["ap-slot"].value, "TETR.AP", { password: inputs["ap-password"].value })
                 .then(() => {
                     revProgresses = getFromStorage("revProgresses") || {};
-                    document.getElementById("ap-chat-area").classList.remove("disabled")
                     document.getElementById("ap-chat-messages").innerHTML = ""
-                    document.getElementById("ap-connect-form").classList.add("disabled")
+                    setTab("chat");
                     connectionStatus.innerHTML = `Connected`
                     document.getElementById("ap-username").innerHTML = inputs["ap-slot"].value
                     shortStatus.innerHTML = `Connected as ${inputs["ap-slot"].value}`
+                    
+                    connectButton.value = "Disconnect"
+                    connectButton.removeAttribute("disabled")
+                    document.getElementById("ap-nav").classList.remove("disabled");
 
                     // wait for login checks to go through
                     waitUntil(() => menuLoaded && !expectLoginChecks, relockCards);
@@ -143,22 +173,22 @@ waitUntil(
             }
         }
 
-        document.getElementById("ap-disconnect").onclick = () => {
-            client.socket.disconnect()
-        }
-
         client.socket.on("disconnected", () => {
             unlockCards();
             setInStorage("revProgresses", revProgresses);
             revProgresses = null;
-            document.getElementById("ap-chat-area").classList.add("disabled")
+            
             connectionStatus.innerHTML = "Disconnected"
             document.getElementById("ap-username").innerHTML = ""
             shortStatus.innerHTML = "Not connected"
 
+            connectButton.value = "Connect"
+            connectButton.removeAttribute("disabled")
+            document.getElementById("ap-nav").classList.add("disabled");
+
             const inputs = document.getElementById("ap-connect-form").elements
             for (const input of inputs) { input.removeAttribute("disabled"); };
-            document.getElementById("ap-connect-form").classList.remove("disabled")
+            setTab("connect");
         })
 
         document.getElementById("ap-collapse").onclick = (e) => {
@@ -209,6 +239,28 @@ function setInStorage(key, value) {
 
     allData[client.room.seedName][client.name][key] = value;
     localStorage.setItem("tetr-ap-data", JSON.stringify(allData));
+}
+
+function setTab(tabName) {
+    if (!client.authenticated && tabName !== "connect") return;
+
+    const tabs = document.getElementsByClassName("ap-tab");
+    for (const tab of tabs) {
+        if (tab.getAttribute("data-tab-name") === tabName) {
+            tab.classList.remove("disabled");
+        } else {
+            tab.classList.add("disabled");
+        }
+    }
+
+    const buttons = document.getElementsByClassName("ap-tab-button");
+    for (const button of buttons) {
+        if (button.innerHTML.toLowerCase() === tabName) {
+            button.classList.add("active");
+        } else {
+            button.classList.remove("active");
+        }
+    }
 }
 
 function createAPNotification(text, {
