@@ -157,8 +157,8 @@ waitUntil(
                     // wait for login checks to go through
                     waitUntil(() => menuLoaded && !expectLoginChecks, relockCards);
 
-                    // sometimes login checks don't come through? so just in case, set login checks to
-                    // false after a few seconds
+                    // login checks aren't sent when there aren't any checks(?)
+                    // in that case, we wait a bit and stop expecting login checks
                     setTimeout(() => {
                         if (expectLoginChecks) {
                             console.warn(`${TAP} Login checks timeout`)
@@ -168,6 +168,8 @@ waitUntil(
                 })
                 .catch((e) => {
                     for (const input of inputs) { input.removeAttribute("disabled"); };
+                    connectButton.removeAttribute("disabled");
+                    
                     connectionStatus.innerHTML = `Failed! ${e}`
                     console.error(e);
                 })
