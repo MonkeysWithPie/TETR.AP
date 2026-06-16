@@ -156,6 +156,15 @@ waitUntil(
 
                     // wait for login checks to go through
                     waitUntil(() => menuLoaded && !expectLoginChecks, relockCards);
+
+                    // sometimes login checks don't come through? so just in case, set login checks to
+                    // false after a few seconds
+                    setTimeout(() => {
+                        if (expectLoginChecks) {
+                            console.warn(`${TAP} Login checks timeout`)
+                            expectLoginChecks = false;
+                        }
+                    }, 5000)
                 })
                 .catch((e) => {
                     for (const input of inputs) { input.removeAttribute("disabled"); };
