@@ -145,6 +145,18 @@
         display: block;
         margin: 2px;
     }
+
+    #ap-progress-area p {
+        margin: 0px;
+    }
+    #ap-ach-count {
+        font-size: 24px;
+        font-weight: bold;
+        font-family: HUN;
+    }
+    #ap-req-count {
+        font-family: HUN;
+    }
 </style>
 
 <header class="tetrap">
@@ -179,8 +191,6 @@
     <input id="ap-chat-input" type="text" placeholder="type a message, press enter to send..." autocomplete="off">
     </div>
 </div>
-<!--
 <div id="ap-progress-area" class="ap-tab disabled" data-tab-name="progress">
-    (this is currently just a demo to show off the tab system, it will be fully functional later)
+    <p>You currently have <span id="ap-ach-count">0</span>/<span id="ap-req-count">Y</span> Achievements required to goal.</p>
 </div>
--->

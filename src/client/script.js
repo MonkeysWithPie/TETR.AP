@@ -169,7 +169,7 @@ waitUntil(
                 .catch((e) => {
                     for (const input of inputs) { input.removeAttribute("disabled"); };
                     connectButton.removeAttribute("disabled");
-                    
+
                     connectionStatus.innerHTML = `Failed! ${e}`
                     console.error(e);
                 })
@@ -673,8 +673,6 @@ client.items.on("itemsReceived", async (items) => {
     if (menuLoaded && !expectLoginChecks) relockCards(); 
     if (expectLoginChecks) expectLoginChecks = false;
 
-    if (!items.some(item => item.name === "Achievement")) return;
-
     // check for wincon
     const selfStatus = await client.players.self.fetchStatus()
     if (selfStatus === clientStatuses.goal) return; // already won
@@ -683,7 +681,7 @@ client.items.on("itemsReceived", async (items) => {
     for (const item of client.items.received) {
         if (item.name === "Achievement") aches++;
     }
-    console.log(`${TAP} Achievements found: ${aches}/${yamlOptions.goal_count}`)
+    document.getElementById("ap-ach-count").textContent = aches;
 
     if (aches >= yamlOptions.goal_count) {
         client.updateStatus(clientStatuses.goal);
@@ -696,6 +694,7 @@ client.items.on("itemsReceived", async (items) => {
 
 client.socket.on("connected", (packet) => {
     yamlOptions = packet.slot_data;
+    document.getElementById("ap-req-count").textContent = yamlOptions.goal_count;
     console.log(`${TAP} Connected to AP server! ${JSON.stringify(yamlOptions)}`)
 })
 })()
