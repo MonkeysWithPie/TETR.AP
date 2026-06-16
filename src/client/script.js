@@ -186,7 +186,6 @@ waitUntil(
 
         client.socket.on("disconnected", () => {
             unlockCards();
-            setInStorage("revProgresses", revProgresses);
             revProgresses = null;
             
             connectionStatus.innerHTML = "Disconnected"
@@ -320,6 +319,7 @@ async function onZenithFinish() {
         revProgresses[mod] = revProgresses[mod] || 0;
         revProgresses[mod] += finalScore;
     }
+    setInStorage("revProgresses", revProgresses);
 
     const { comboName, comboNum } = getComboAndNum(mods);
     if (!comboName) {
