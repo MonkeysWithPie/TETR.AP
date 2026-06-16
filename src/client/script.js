@@ -400,7 +400,7 @@ function relockCards() {
         if (
             tarotCardMap[reverse] && 
             reverse !== item.name && 
-            (revProgresses[reverse] || 0) >= yamlOptions.reverse_height
+            (revProgresses[tarotCardMap[reverse]] || 0) >= yamlOptions.reverse_height
         ) {
             unlocked.push(`${tarotCardMap[reverse]}_reversed`)
         }
