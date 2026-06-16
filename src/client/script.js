@@ -329,7 +329,7 @@ async function onZenithFinish() {
     const floor = getFloor(finalScore);
     console.log(`${TAP} Combo: ${comboName} (num ${comboNum}), Floor: ${floor}`)
 
-    let checked = false;
+    let sentToSelf = false;
     for (let i = 2; i <= floor; i++) {
         const checkID = i + (comboNum * 100);
         if (client.room.checkedLocations.includes(checkID)) {
@@ -345,11 +345,11 @@ async function onZenithFinish() {
             console.log(`${TAP} No item found at check ${checkID}`)
             continue;
         }
-        checked = true;
-
+        
         let notifText = `Sent ${item.name} to ${item.receiver}! (${item.locationName})`;
         if (item.receiver == client.name) {
             notifText = `Found your ${item.name}! (${item.locationName})`
+            sentToSelf = true;
             expectedChecks.push(checkID);
         }
 
@@ -365,8 +365,8 @@ async function onZenithFinish() {
         await client.check(checkID);
     }
 
-    // checks will relock cards as it counts as receiving an item
-    if (!checked) relockCards();
+    // sending to self will relock cards as it counts as receiving an item
+    if (!sentToSelf) relockCards();
 }
 
 const tarotCardMap = {
