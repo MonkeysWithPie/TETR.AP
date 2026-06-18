@@ -91,6 +91,7 @@ let yamlOptions = null;
 let revProgresses = null;
 let expectLoginChecks = false;
 let expectedChecks = [];
+let expectDisconnect = false;
 
 waitUntil(
     () => document.body,
@@ -141,6 +142,7 @@ waitUntil(
         connectButton.onclick = (e) => {
             e.preventDefault()
             if (client.authenticated) {
+                expectDisconnect = true;
                 connectionStatus.innerHTML = "Disconnecting..."
                 connectButton.setAttribute("disabled","true")
                 client.socket.disconnect();
@@ -214,6 +216,10 @@ waitUntil(
             const inputs = document.getElementById("ap-connect-form").elements
             for (const input of inputs) { input.removeAttribute("disabled"); };
             setTab("connect");
+
+            if (!expectDisconnect) {
+                createAPNotification("Unexpectedly disconnected from server!", { color: "#fa5e4d", backgroundColor: "#060606dd", timeout: 10000 })
+            } else { expectDisconnect = false; }
         })
 
         document.getElementById("ap-collapse").onclick = (e) => {
