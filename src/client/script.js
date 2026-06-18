@@ -323,10 +323,10 @@ async function onZenithFinish() {
         revProgresses[mod] += finalScore;
     }
     setInStorage("revProgresses", revProgresses);
+    relockCards();
 
     const { comboName, comboNum } = getComboAndNum(mods);
     if (!comboName) {
-        relockCards();
         console.log(`${TAP} No combo found for mods ${mods}`);
         return;
     }
@@ -335,19 +335,15 @@ async function onZenithFinish() {
     console.log(`${TAP} Combo: ${comboName} (num ${comboNum}), Floor: ${floor}`)
 
     let sentToSelf = false;
+    const scoutIDs = [];
     for (let i = 2; i <= floor; i++) {
-        const checkID = i + (comboNum * 100);
-        if (client.room.checkedLocations.includes(checkID)) {
-            console.log(`${TAP} Already found check ${checkID}`)
-            continue;
-        }
+        scoutIDs.push(i + (comboNum * 100));
+    }
+    const scoutResults = await client.scout(scoutIDs, 0);
 
-        const itemData = await client.scout([checkID], 0);
-        const item = itemData[0];
-        // since the client (currently) does not know which settings were used,
-        // scouting the check may yield nothing depending on the YAML settings
+    let checkPromises = [];
+    for (const item of scoutResults) {
         if (!item) {
-            console.log(`${TAP} No item found at check ${checkID}`)
             continue;
         }
         
@@ -355,7 +351,7 @@ async function onZenithFinish() {
         if (item.receiver == client.name) {
             notifText = `Found your ${item.name}! (${item.locationName})`
             sentToSelf = true;
-            expectedChecks.push(checkID);
+            expectedChecks.push(item.locationId);
         }
 
         let notifSettings = { color: "#888888", backgroundColor: "#060606dd", timeout: 5000 };
@@ -367,11 +363,10 @@ async function onZenithFinish() {
         if (item.trap) notifSettings.color = "#fa8072";
         createAPNotification(notifText, notifSettings);
 
-        await client.check(checkID);
+        checkPromises.push(client.check(item.locationId));
     }
-
-    // sending to self will relock cards as it counts as receiving an item
-    if (!sentToSelf) relockCards();
+    await Promise.all(checkPromises);
+    relockCards();
 }
 
 const tarotCardMap = {
