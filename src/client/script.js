@@ -126,6 +126,18 @@ waitUntil(
 
         document.getElementById("ap-server").value = "archipelago.gg:12345";
 
+        const body = document.getElementsByTagName("body")[0];
+        for (const input of apMenu.querySelectorAll("input[type=text]")) {
+            input.onfocus = () => {
+                body.classList.add("chatfocus");
+                body.classList.add("tetrap-chatfocus");
+            }
+            input.onblur = () => {
+                body.classList.remove("chatfocus");
+                body.classList.remove("tetrap-chatfocus");
+            }
+        }
+
         connectButton.onclick = (e) => {
             e.preventDefault()
             if (client.authenticated) {
