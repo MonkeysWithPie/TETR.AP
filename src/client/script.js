@@ -465,6 +465,33 @@ async function detectDifficulties() {
     }
 
     console.log(`${TAP} Detected difficulties: ${JSON.stringify(yamlOptions.difficulties)}`)
+
+    // attempt to auto-detect check style
+    if (typeof yamlOptions.check_style !== "number") {
+        const mightBeVanilla = await client.scout([2], 0);
+
+        let allCheckTarget;
+        for (const mod in yamlOptions.difficulties) {
+            if (yamlOptions.difficulties[mod] >= 2) {
+                allCheckTarget = 2 + (Object.keys(modCombos).indexOf(mod) * 100);
+                break;
+            }
+        }
+        if (!allCheckTarget) return console.warn(`${TAP} Could not find a check to auto-detect check style!`);
+
+        const mightBeAll = await client.scout([allCheckTarget], 0);
+
+        if (mightBeVanilla[0] && !mightBeAll[0]) {
+            yamlOptions.check_style = 0;
+        }
+        if (mightBeVanilla[0] && mightBeAll[0]) {
+            yamlOptions.check_style = 2;
+        }
+        if (!mightBeVanilla[0] && !mightBeAll[0]) {
+            yamlOptions.check_style = 1;
+        }
+        console.log(`${TAP} Auto-detected check style: ${yamlOptions.check_style}`)
+    }
 }
 
 async function updateProgressTab() {
