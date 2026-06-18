@@ -12,36 +12,36 @@ async function waitUntil(predicate, trigger, interval = 200) {
     await trigger();
 }
 
-function getComboAndNum(mods) {
-    const combos = {
-        "Standard": [],
-        "Temperance": ["nohold"],
-        "Asceticism": ["nohold_reversed"],
-        "Wheel of Fortune": ["messy"],
-        "Loaded Dice": ["messy_reversed"],
-        "The Tower": ["gravity"],
-        "Freefall": ["gravity_reversed"],
-        "Strength": ["volatile"],
-        "Last Stand": ["volatile_reversed"],
-        "The Devil": ["doublehole"],
-        "Damnation": ["doublehole_reversed"],
-        "The Hermit": ["invisible"],
-        "The Exile": ["invisible_reversed"],
-        "The Magician": ["allspin"],
-        "The Warlock": ["allspin_reversed"],
-        "The Emperor": ["expert"],
-        "The Tyrant": ["expert_reversed"],
-        "Deadlock": ["nohold", "doublehole", "messy"],
-        "The Starving Artist": ["nohold", "allspin"],
-        "The Grandmaster": ["gravity", "invisible"],
-        "The Con Artist": ["expert", "volatile", "allspin"],
-        "Divine Mastery": ["expert","doublehole","volatile","messy"],
-        "A Modern Classic": ["nohold","gravity"],
-        "Emperor's Decadence": ["expert", "doublehole", "nohold"],
-        "Swamp Water": ["nohold", "messy", "gravity", "volatile", "doublehole", "invisible", "allspin", "expert"],
-    }   
+const modCombos = {
+    "Standard": [],
+    "Temperance": ["nohold"],
+    "Asceticism": ["nohold_reversed"],
+    "Wheel of Fortune": ["messy"],
+    "Loaded Dice": ["messy_reversed"],
+    "The Tower": ["gravity"],
+    "Freefall": ["gravity_reversed"],
+    "Strength": ["volatile"],
+    "Last Stand": ["volatile_reversed"],
+    "The Devil": ["doublehole"],
+    "Damnation": ["doublehole_reversed"],
+    "The Hermit": ["invisible"],
+    "The Exile": ["invisible_reversed"],
+    "The Magician": ["allspin"],
+    "The Warlock": ["allspin_reversed"],
+    "The Emperor": ["expert"],
+    "The Tyrant": ["expert_reversed"],
+    "Deadlock": ["nohold", "doublehole", "messy"],
+    "The Starving Artist": ["nohold", "allspin"],
+    "The Grandmaster": ["gravity", "invisible"],
+    "The Con Artist": ["expert", "volatile", "allspin"],
+    "Divine Mastery": ["expert","doublehole","volatile","messy"],
+    "A Modern Classic": ["nohold","gravity"],
+    "Emperor's Decadence": ["expert", "doublehole", "nohold"],
+    "Swamp Water": ["nohold", "messy", "gravity", "volatile", "doublehole", "invisible", "allspin", "expert"],
+} 
 
-    const comboCount = Object.keys(combos).length;
+function getComboAndNum(mods) {  
+    const comboCount = Object.keys(modCombos).length;
 
     function arraysEqual(a, b) {
         if (a === b) return true;
@@ -58,8 +58,8 @@ function getComboAndNum(mods) {
     }
 
     for (let i = 0; i < comboCount; i++) {
-        const comboName = Object.keys(combos)[i];
-        const comboMods = combos[comboName];
+        const comboName = Object.keys(modCombos)[i];
+        const comboMods = modCombos[comboName];
         
         if (arraysEqual(mods, comboMods)) {
             return { comboName, comboNum: i }
@@ -142,7 +142,7 @@ waitUntil(
 
             expectLoginChecks = true;
             client.login(inputs["ap-server"].value, inputs["ap-slot"].value, "TETR.AP", { password: inputs["ap-password"].value })
-                .then(() => {
+                .then(async () => {
                     revProgresses = getFromStorage("revProgresses") || {};
                     document.getElementById("ap-chat-messages").innerHTML = ""
                     setTab("chat");
@@ -153,6 +153,9 @@ waitUntil(
                     connectButton.value = "Disconnect"
                     connectButton.removeAttribute("disabled")
                     document.getElementById("ap-nav").classList.remove("disabled");
+
+                    await detectDifficulties();
+                    updateProgressTab();
 
                     // wait for login checks to go through
                     waitUntil(() => menuLoaded && !expectLoginChecks, relockCards);
@@ -412,6 +415,7 @@ function relockCards() {
         setTarotCardLocked(tarotCardMap[card], !unlocked.includes(tarotCardMap[card]))
         setTarotCardReverseLocked(tarotCardMap[card], !unlocked.includes(`${tarotCardMap[card]}_reversed`))
     }
+    updateProgressTab();
 }
 
 async function waitForZenithFinish() {
@@ -430,6 +434,123 @@ async function waitForZenithFinish() {
             () => waitForZenithFinish()
         )
     });
+}
+
+async function detectDifficulties() {
+    // as per https://github.com/ArchipelagoMW/Archipelago/blob/main/docs/world%20api.md#slot-data, it's better to use locationScouts than it is
+    // to add the difficulties to the slot data directly. here we scout each check to see if it exists and determine difficulties based on that
+    const scouts = [];
+
+    // +1 bc of SWL
+    for (let i = 0; i < Object.keys(modCombos).length + 1; i++) {
+        for (let j = 2; j <= 10; j++) {
+            const checkID = j + (i * 100);
+            scouts.push(checkID);
+        }
+    }
+    const items = await client.scout(scouts, 0);
+
+    yamlOptions.difficulties = {};
+    for (const item of items) {
+        const checkID = item.locationId;
+
+        // HACK: `checkID % 100` causes errors when placed in a bookmarklet because the browser thinks it should be `%10` instead which is illegal
+        // so we convert to string and back to number to force the correct modulo operation
+        const floor = checkID % Number("100");
+
+        let combo = Object.keys(modCombos)[Math.floor(checkID / 100)];
+        if (!combo) combo = "Swamp Water Lite";
+        
+        yamlOptions.difficulties[combo] = floor;
+    }
+
+    console.log(`${TAP} Detected difficulties: ${JSON.stringify(yamlOptions.difficulties)}`)
+}
+
+async function updateProgressTab() {
+    const modsetList = document.getElementById("ap-modset-list");
+    modsetList.innerHTML = "";
+
+    if (typeof yamlOptions.check_style !== "number") {
+        document.getElementById("ap-progress-hint").style.display = "none";
+        modsetList.textContent = "The APWorld on the server is outdated, so tracking info can't be shown."
+        return;
+    }
+
+    const unlockedMods = [];
+    
+    for (const item of client.items.received) {
+        if (tarotCardMap[item.name]) {
+            unlockedMods.push(tarotCardMap[item.name])
+        }
+
+        const reversed = item.name.replace("Reversed ","");
+        if (tarotCardMap[reversed] && reversed !== item.name && (revProgresses[tarotCardMap[reversed]] || 0) >= yamlOptions.reverse_height) {
+            unlockedMods.push(`${tarotCardMap[reversed]}_reversed`)
+        }
+    }
+
+    const possibleModsets = [];
+
+    for (const comboName in modCombos) {
+        const comboMods = modCombos[comboName];
+        let allowed = true;
+        for (const mod of comboMods) {
+            if (!unlockedMods.includes(mod)) allowed = false;
+        }
+        if (allowed) {
+            possibleModsets.push(comboName);
+        }
+    }
+    if (unlockedMods.length >= 7) {
+        possibleModsets.push("Swamp Water Lite");
+    }
+
+    const ranks = {
+        2: "bronze",
+        3: "bronze",
+        4: "bronze",
+        5: "silver",
+        6: "silver",
+        7: "gold",
+        8: "gold",
+        9: "platinum",
+        10: "diamond",
+    }
+
+    const emptyImg = document.createElement("div");
+    emptyImg.style.width = "32px";
+    for (const modset of possibleModsets) {
+        const modsetDiv = document.createElement("div");
+        modsetDiv.classList.add("ap-modset");
+
+        const modsetName = document.createElement("p");
+        modsetName.textContent = modset;
+        modsetDiv.appendChild(modsetName);
+
+        for (let i = 2; i <= 10; i++) {
+            if (i > yamlOptions.difficulties[modset]) break;
+
+            const img = document.createElement("img");
+
+            // 0 = vanilla, 1 = ranks, 2 = all
+            if (yamlOptions.check_style === 0 && modset !== "Standard" || yamlOptions.check_style === 1) {
+                if (![3,5,7,9,10].includes(i)) { // not a check
+                    modsetDiv.appendChild(emptyImg.cloneNode());
+                    continue;
+                }
+            }
+            
+            const checkID = i + (Object.keys(modCombos).indexOf(modset) * 100);
+            const hasCheck = client.room.checkedLocations.includes(checkID);
+            
+            img.src = `/res/achievements/frames/${hasCheck ? ranks[i] : "none"}.png`;
+
+            modsetDiv.appendChild(img);
+        }
+
+        modsetList.appendChild(modsetDiv);
+    }
 }
 
 function getTarotCard(card) {
@@ -692,7 +813,7 @@ client.items.on("itemsReceived", async (items) => {
     }
 })
 
-client.socket.on("connected", (packet) => {
+client.socket.on("connected", async (packet) => {
     yamlOptions = packet.slot_data;
     document.getElementById("ap-req-count").textContent = yamlOptions.goal_count;
     console.log(`${TAP} Connected to AP server! ${JSON.stringify(yamlOptions)}`)

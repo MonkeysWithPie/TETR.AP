@@ -20,10 +20,10 @@ class TetrAPWorld(World):
 
 
     def fill_slot_data(self):
-        # TODO maybe give the client a built-in checklist
         return {
             "goal_count": math.ceil(options.get_achievement_count(self.options) * self.options.achievement_goal_percentage * 0.01),
-            "reverse_height": int(self.options.reverse_mod_height_requirement),
+            "reverse_height": self.options.reverse_mod_height_requirement.value,
+            "check_style": self.options.check_style.value,
         }
     
     location_name_to_id = locations.LOCATION_NAME_TO_ID

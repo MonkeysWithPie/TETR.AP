@@ -145,9 +145,16 @@
         display: block;
         margin: 2px;
     }
-
-    #ap-progress-area p {
+    
+    #ap-progress-area {
+        max-height: 300px;
+        overflow-y: scroll;
+    }
+    #ap-counter-area {
         margin: 0px;
+        position: sticky;
+        top: 0px;
+        background-color: #fffb;
     }
     #ap-ach-count {
         font-size: 24px;
@@ -156,6 +163,38 @@
     }
     #ap-req-count {
         font-family: HUN;
+    }
+
+    .ap-modset {
+        display: flex;
+        align-items: center;
+        padding: 4px 0px;
+    }
+    .ap-modset:nth-child(even) {
+        background-color: #eee;
+    }
+    .ap-modset p, .ap-mod-hint {
+        width: 20%;
+        margin: 0;
+    }
+    .ap-modset img, .ap-modset div {
+        width: 32px;
+        height: 32px;
+        margin-right: 2px;
+    }
+
+    #ap-progress-hint {
+        display: flex;
+        align-items: center;
+        color: #777;
+    }
+    #ap-progress-hint p {
+        margin: 0;
+    }
+    .ap-floor-hint {
+        text-align: center;
+        width: 32px;
+        margin-right: 2px !important;
     }
 </style>
 
@@ -192,5 +231,18 @@
     </div>
 </div>
 <div id="ap-progress-area" class="ap-tab disabled" data-tab-name="progress">
-    <p>You currently have <span id="ap-ach-count">0</span>/<span id="ap-req-count">Y</span> Achievements required to goal.</p>
+    <p id="ap-counter-area">You currently have <span id="ap-ach-count">0</span>/<span id="ap-req-count">Y</span> Achievements required to goal.</p>
+    <div id="ap-progress-hint">
+        <p class="ap-mod-hint">Modset</p>
+        <p class="ap-floor-hint">f2</p>
+        <p class="ap-floor-hint">f3</p>
+        <p class="ap-floor-hint">f4</p>
+        <p class="ap-floor-hint">f5</p>
+        <p class="ap-floor-hint">f6</p>
+        <p class="ap-floor-hint">f7</p>
+        <p class="ap-floor-hint">f8</p>
+        <p class="ap-floor-hint">f9</p>
+        <p class="ap-floor-hint">f10</p>
+    </div>
+    <div id="ap-modset-list"></div>
 </div>

@@ -16,7 +16,6 @@ def create_regions(world: TetrAPWorld):
 
     regions.append(Region("Menu", world.player, world.multiworld))
 
-    # TODO respect options
     for modset in mod_combos:
         regions.append(Region(f"{modset}", world.player, world.multiworld))
 
