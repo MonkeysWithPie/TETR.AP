@@ -485,7 +485,7 @@ async function detectDifficulties() {
 
         let allCheckTarget;
         for (const mod in yamlOptions.difficulties) {
-            if (yamlOptions.difficulties[mod] >= 2) {
+            if (yamlOptions.difficulties[mod] >= 2 && mod !== "Standard") {
                 allCheckTarget = 2 + (Object.keys(modCombos).indexOf(mod) * 100);
                 break;
             }
@@ -494,6 +494,7 @@ async function detectDifficulties() {
 
         const mightBeAll = await client.scout([allCheckTarget], 0);
 
+        console.log(`${TAP} ${mightBeVanilla[0]} ${mightBeAll[0]}`)
         if (mightBeVanilla[0] && !mightBeAll[0]) {
             yamlOptions.check_style = 0;
         }
