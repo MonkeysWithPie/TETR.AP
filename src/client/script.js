@@ -169,7 +169,6 @@ waitUntil(
                     document.getElementById("ap-nav").classList.remove("disabled");
 
                     await detectDifficulties();
-                    updateProgressTab();
 
                     // wait for login checks to go through
                     waitUntil(() => menuLoaded && !expectLoginChecks, relockCards);
@@ -291,6 +290,10 @@ function setTab(tabName) {
         } else {
             button.classList.remove("active");
         }
+    }
+
+    if (tabName === "progress") {
+        updateProgressTab();
     }
 }
 
@@ -428,7 +431,6 @@ function relockCards() {
         setTarotCardLocked(tarotCardMap[card], !unlocked.includes(tarotCardMap[card]))
         setTarotCardReverseLocked(tarotCardMap[card], !unlocked.includes(`${tarotCardMap[card]}_reversed`))
     }
-    updateProgressTab();
 }
 
 async function waitForZenithFinish() {
@@ -834,6 +836,7 @@ client.items.on("itemsReceived", async (items) => {
     // checks may appear before login is finished, and login relocks cards anyways, so skip for now
     if (menuLoaded && !expectLoginChecks) relockCards(); 
     if (expectLoginChecks) expectLoginChecks = false;
+    updateProgressTab();
 
     // check for wincon
     const selfStatus = await client.players.self.fetchStatus()
