@@ -367,6 +367,9 @@ async function onZenithFinish() {
         if (!item) {
             continue;
         }
+        if (client.room.checkedLocations.includes(item.locationId)) {
+            continue;
+        }
         
         let notifText = `Sent ${item.name} to ${item.receiver}! (${item.locationName})`;
         if (item.receiver == client.name) {
