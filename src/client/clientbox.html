@@ -8,9 +8,56 @@
         max-width: 60vw;
         max-height: 60vh;
         margin: 2px;
-        background-color: white;
+        background-color: var(--ap-bg);
+        color: var(--ap-text);
         transition: opacity 0.3s ease-out;
+
+        --ap-text: #000;
+        --ap-bg: #fff;
+        --ap-bg-darker: #ddd;
+        --ap-header: #99f;
+        --ap-nav: #bbf;
+
+        --ap-disabled: #777;
+        --ap-disabled-bg: #aaa;
     }
+
+    #tetrap-client-area.dark {
+        --ap-text: #eee;
+        --ap-bg: #333;
+        --ap-bg-darker: #111;
+        --ap-header: #227;
+        --ap-nav: #447;
+
+        --ap-disabled: #aaa;
+        --ap-disabled-bg: #555;
+    }
+
+    #tetrap-client-area input {
+        border: 1px solid var(--ap-disabled);
+        border-radius: 2px;
+        padding: 2px;
+        background-color: var(--ap-bg);
+        color: var(--ap-text);
+    }
+    #tetrap-client-area input:disabled {
+        background-color: var(--ap-disabled-bg);
+        color: var(--ap-disabled);
+    }
+    
+    #tetrap-client-area input[type="button"] {
+        padding: 2px 6px;
+    }
+    #tetrap-client-area input[type="button"]:hover {
+        background-color: rgb(from var(--ap-bg-darker) r g b / 0.7);
+    }
+    #tetrap-client-area input[type="button"]:active {
+        background-color: var(--ap-bg-darker);
+    }
+    #ap-connect-form br {
+        margin: 4px 0px;
+    }
+
     #tetrap-client-area.after-menu-load {
         top: 4.2em;
         z-index: 999999; /* below the fade-out but above everything else */
@@ -24,9 +71,8 @@
     }
 
     #ap-chat-messages {
-        border: 1px solid black;
-        background-color: #303030;
-        color: white;
+        border: 1px solid var(--ap-text);
+        background-color: var(--ap-bg-darker);
         width: calc(100%-8px);
         height: 200px;
         overflow: auto;
@@ -54,22 +100,22 @@
     
     header.tetrap {
         display: flex;
-        background-color: #99f;
+        background-color: var(--ap-header);
         padding: 2px;
         align-items: center;
     }
 
     #ap-nav {
         display: flex;
-        background-color: #bbf;
+        background-color: var(--ap-nav);
         margin-bottom: 2px;
-        border-top: 1px solid black;
+        border-top: 1px solid var(--ap-text);
     }
 
     .ap-tab-button {
         padding: 0px 6px;
-        border-right: 1px solid black;
-        border-bottom: 1px solid black;
+        border-right: 1px solid var(--ap-text);
+        border-bottom: 1px solid var(--ap-text);
         background-color: #7773;
         transition: padding 0.2s, background 0.2s;
 
@@ -78,18 +124,18 @@
         cursor: pointer;
     }
     .ap-tab-button.active {
-        background-image: linear-gradient(#bbf, white);
+        background-image: linear-gradient(var(--ap-nav), var(--ap-bg));
         padding: 0px 16px;
         border-bottom: none;
     }
 
     .ap-tab-button:hover {
-        background-color: #fff3;
+        background-color: rgb(from var(--ap-bg) r g b / 0.2);
     }
 
     #ap-nav.disabled .ap-tab-button:not(.active) {
-        color: #777;
-        background-color: #aaaa;
+        color: var(--ap-disabled);
+        background-color: var(--ap-disabled-bg);
         cursor: not-allowed;
     }
 
@@ -111,10 +157,10 @@
 
     #ap-collapse {
         border: none;
-        background-color: #77777733;
+        background-color: rgb(from var(--ap-text) r g b / 0.1);
     }
     #ap-collapse:hover {
-        background-color: #777777aa;
+        background-color: rgb(from var(--ap-text) r g b / 0.2);
     }
 
     #tetrap-client-area.collapsed {
@@ -154,7 +200,7 @@
         margin: 0px;
         position: sticky;
         top: 0px;
-        background-color: #fffb;
+        background-color: rgb(from var(--ap-bg) r g b / 0.7);
     }
     #ap-ach-count {
         font-size: 24px;
@@ -171,7 +217,7 @@
         padding: 4px 0px;
     }
     .ap-modset:nth-child(even) {
-        background-color: #eee;
+        background-color: var(--ap-bg-darker);
     }
     .ap-modset p, .ap-mod-hint {
         width: 20%;
@@ -182,11 +228,14 @@
         height: 32px;
         margin-right: 2px;
     }
+    #tetrap-client-area.dark img[src="/res/achievements/frames/none.png"] {
+        filter: invert(1);
+    }
 
     #ap-progress-hint {
         display: flex;
         align-items: center;
-        color: #777;
+        color: var(--ap-disabled);
     }
     #ap-progress-hint p {
         margin: 0;

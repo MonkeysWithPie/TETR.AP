@@ -102,6 +102,10 @@ waitUntil(
         // placed here in the DOM so it is shown always except during screen transitions
         document.body.insertBefore(apMenu, document.getElementById("nofocus"));
 
+        if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
+            apMenu.classList.add("dark");
+        }
+
         const connectionStatus = document.getElementById("ap-status")
         const shortStatus = document.getElementById("ap-shortstatus")
         const chatInput = document.getElementById("ap-chat-input")
@@ -122,7 +126,7 @@ waitUntil(
         }
         const filler = document.createElement("div");
         filler.style.flexGrow = "1";
-        filler.style.borderBottom = "1px solid black";
+        filler.style.borderBottom = "1px solid var(--ap-text)";
         document.getElementById("ap-nav").appendChild(filler);
 
         document.getElementById("ap-server").value = "archipelago.gg:12345";
