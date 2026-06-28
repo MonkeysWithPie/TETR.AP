@@ -158,9 +158,10 @@ waitUntil(
             for (const input of inputs) { input.setAttribute("disabled","true") }
             connectButton.setAttribute("disabled","true")
             connectionStatus.innerHTML = "Connecting..."
+            document.getElementById("ap-connect-error").innerHTML = "";
 
             expectLoginChecks = true;
-            client.login(inputs["ap-server"].value, inputs["ap-slot"].value, "TETR.AP", { password: inputs["ap-password"].value })
+            client.login(inputs["ap-server"].value, inputs["ap-slot"].value, "TETR.AP", { password: inputs["ap-password"].value, version: { major: 0, minor: 6, build: 7 } })
                 .then(async () => {
                     recentConnectFail = false;
                     revProgresses = getFromStorage("revProgresses") || {};
@@ -193,7 +194,27 @@ waitUntil(
                     for (const input of inputs) { input.removeAttribute("disabled"); };
                     connectButton.removeAttribute("disabled");
 
-                    connectionStatus.innerHTML = `Failed! ${e}`
+                    connectionStatus.innerHTML = `Disconnected`
+                    const errorElement = document.getElementById("ap-connect-error")
+
+                    // ArgumentError should not happen because #ap-slot is required, and
+                    // LoginErrors are already covered by connectionRefused event
+                    if (e instanceof TypeError) {
+                        errorElement.innerHTML = "The server you input is not a valid URL!"
+                    }
+                    else if (e.name === "SecurityError") {
+                        errorElement.innerHTML = "The port you input is incorrect!"
+                    }
+                    else if (e.message.includes("Failed to connect to Archipelago server")) {
+                        errorElement.innerHTML = "The server you input is not hosting a server!"
+                    }
+                    else if (e.message.includes("Connection was refused")) {
+                        // handled
+                    }
+                    else {
+                        errorElement.innerHTML = `Failed to connect! Not sure why. Check the console for more info.`;
+                    }
+                    
                     console.error(e);
                 })
         }
@@ -227,6 +248,36 @@ waitUntil(
             if (!expectDisconnect) {
                 createAPNotification("Unexpectedly disconnected from server!", { color: "#fa5e4d", backgroundColor: "#060606dd", timeout: 10000 })
             } else { expectDisconnect = false; }
+        })
+
+        client.socket.on("connectionRefused", (packet) => {
+            let errorMessage = `Failed to connect! Not sure why.`;
+            if (!packet.errors) {
+                document.getElementById("ap-connect-error").innerHTML = errorMessage;
+                return;
+            }
+
+            if (packet.errors.includes("InvalidSlot")) {
+                errorMessage = `Your slot name is invalid!`;
+            }
+            if (packet.errors.includes("InvalidPassword")) {
+                if (document.getElementById("ap-password").value === "") {
+                    errorMessage = `This server requires a password!`;
+                } else {
+                    errorMessage = `The password you entered is invalid!`;
+                }
+            }
+            if (packet.errors.includes("InvalidGame")) {
+                errorMessage = `The slot you are trying to connect to is not running TETR.AP!`;
+            }
+            if (packet.errors.includes("InvalidVersion")) {
+                errorMessage = `The server is running an incompatible version of Archipelago! This client may have an update available, or the server could be outdated.`;
+            }
+            if (packet.errors.includes("InvalidItemsHandling")) {
+                errorMessage = `The server didn't like your item handling flags. This should never happen.`
+            }
+
+            document.getElementById("ap-connect-error").innerHTML = errorMessage;
         })
 
         document.getElementById("ap-collapse").onclick = (e) => {
