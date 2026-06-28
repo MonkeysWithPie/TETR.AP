@@ -92,6 +92,7 @@ let revProgresses = null;
 let expectLoginChecks = false;
 let expectedChecks = [];
 let expectDisconnect = false;
+let recentConnectFail = false;
 
 waitUntil(
     () => document.body,
@@ -143,7 +144,7 @@ waitUntil(
             }
         }
 
-        connectButton.onclick = (e) => {
+        document.getElementById("ap-connect-form").onsubmit = (e) => {
             e.preventDefault()
             if (client.authenticated) {
                 expectDisconnect = true;
@@ -161,6 +162,7 @@ waitUntil(
             expectLoginChecks = true;
             client.login(inputs["ap-server"].value, inputs["ap-slot"].value, "TETR.AP", { password: inputs["ap-password"].value })
                 .then(async () => {
+                    recentConnectFail = false;
                     revProgresses = getFromStorage("revProgresses") || {};
                     document.getElementById("ap-chat-messages").innerHTML = ""
                     setTab("chat");
@@ -187,6 +189,7 @@ waitUntil(
                     }, 5000)
                 })
                 .catch((e) => {
+                    recentConnectFail = true;
                     for (const input of inputs) { input.removeAttribute("disabled"); };
                     connectButton.removeAttribute("disabled");
 
@@ -205,6 +208,7 @@ waitUntil(
         }
 
         client.socket.on("disconnected", () => {
+            if (recentConnectFail) return;
             unlockCards();
             revProgresses = null;
             

@@ -45,13 +45,13 @@
         color: var(--ap-disabled);
     }
     
-    #tetrap-client-area input[type="button"] {
+    #tetrap-client-area input[type="submit"] {
         padding: 2px 6px;
     }
-    #tetrap-client-area input[type="button"]:hover {
+    #tetrap-client-area input[type="submit"]:hover {
         background-color: rgb(from var(--ap-bg-darker) r g b / 0.7);
     }
-    #tetrap-client-area input[type="button"]:active {
+    #tetrap-client-area input[type="submit"]:active {
         background-color: var(--ap-bg-darker);
     }
     #ap-connect-form br {
@@ -265,17 +265,17 @@
 
 <div id="ap-connect-area" class="ap-tab" data-tab-name="connect">
     <form id="ap-connect-form">
-        <label for="server">Server:</label>
+        <label for="ap-server">Server:</label>
         <input id="ap-server" type="text" placeholder="archipelago.gg:12345" required>
         <br>
-        <label for="slot">Slot Name:</label>
+        <label for="ap-slot">Slot Name:</label>
         <input id="ap-slot" type="text" required>
         <br>
-        <label for="password">Password (opt):</label>
+        <label for="ap-password">Password (opt):</label>
         <input id="ap-password" type="text">
         <br>
+        <input id="ap-connect" type="submit" value="Connect">
     </form>
-    <input id="ap-connect" type="button" value="Connect">
 </div>
 
 <div id="ap-chat-area" class="ap-tab disabled" data-tab-name="chat">
