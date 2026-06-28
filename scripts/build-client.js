@@ -3,8 +3,11 @@
 const fs = require("fs");
 const { minify_sync } = require("terser");
 
+let html = fs.readFileSync("src/client/clientbox.html", "utf-8")
+html = html.replaceAll(/\n/g, "").replaceAll(/"/g, '\\"').replaceAll("    ", "");
+
 let clientScript = fs.readFileSync("src/client/script.js", "utf-8")
-    .replace("{{clientbox.html}}", fs.readFileSync("src/client/clientbox.html", "utf-8").replace(/\n/g, "\\n").replace(/"/g, '\\"'));
+    .replace("{{clientbox.html}}", html);
 
 const images = ["lockover-ap.png", "archipelago_logo.png"];
 for (const img of images) {
