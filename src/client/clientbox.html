@@ -233,7 +233,7 @@
         top: 0px;
         background-color: rgb(from var(--ap-bg) r g b / 0.7);
     }
-    #ap-ach-count, #ap-hint-score, #ap-hint-points {
+    #ap-ach-count, #ap-hint-points {
         font-size: 24px;
         font-weight: bold;
         font-family: HUN;
@@ -241,7 +241,7 @@
     #ap-req-count, #ap-hint-req {
         font-family: HUN;
     }
-    #ap-hintmode-earned, #ap-hintmode-progress {
+    #ap-hintmode-earned {
         margin: 0px;
     }
 
@@ -285,6 +285,39 @@
         text-align: center;
         width: 32px;
         margin-right: 2px !important;
+    }
+
+    #ap-hintmode-bar {
+        margin: 8px;
+        margin-bottom: 0px;
+        height: 1.5em;
+        border: 1px solid var(--ap-text);
+        display: flex;
+    }
+    #ap-hintmode-bar-fill {
+        background-color: #4eb85f;
+        height: 100%;
+        flex-shrink: 0;
+        width: 0%;
+        transition: width 0.5s ease-out;
+    }
+    #ap-hintmode-bar-new {
+        background-color: #88e698;
+        height: 100%;
+        width: 0%;
+        transition: width 0.5s ease-out;
+    }
+    #ap-hintmode-numbers {
+        display: flex;
+        margin: 0px 8px;
+        justify-content: space-between;
+    }
+    #ap-hintmode-numbers div {
+        font-family: HUN;
+        font-size: 20px;
+    }
+    #ap-hint-req {
+        color: var(--ap-disabled);
     }
 
     .chatfocus.chatbg.tetrap-chatfocus #ingame_chat_container {
@@ -352,7 +385,16 @@
         <div id="ap-modset-list"></div>
     </div>
     <div id="ap-progress-hintmode" style="display: none;">
-        <p id="ap-hintmode-progress"><span id="ap-hint-score">0</span>/<span id="ap-hint-req">0</span> to next Hint Point</p>
+        <div id="ap-hintmode-bar">
+            <div id="ap-hintmode-bar-fill"></div>
+            <div id="ap-hintmode-bar-new"></div>
+        </div>
+        <div id="ap-hintmode-numbers">
+            <div id="ap-hint-score"></div>
+            <div id="ap-hint-req"></div>
+        </div>
+
+        <br>
         <p id="ap-hintmode-earned">You have <span id="ap-hint-points">0</span> Hint Points</p>
 
         <div id="ap-hint-shop">

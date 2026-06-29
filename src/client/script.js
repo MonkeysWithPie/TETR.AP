@@ -345,7 +345,7 @@ waitUntil(
             }
             
             hintPoints -= 1;
-            document.getElementById("ap-hint-points").innerHTML = hintPoints;
+            updateProgressTab();
             const hintIndex = Math.floor(Math.random() * hintable.length);
             const hint = await client.scout([hintable[hintIndex]], 1);
 
@@ -361,7 +361,7 @@ waitUntil(
             e.preventDefault();
             hintGoal = Math.floor(Number(document.getElementById("ap-hint-req-input").value) * 1.2);
             setPreference("hintGoal", hintGoal);
-            document.getElementById("ap-hint-req").innerHTML = hintGoal;
+            updateProgressTab();
         }
     }
 )
@@ -470,8 +470,7 @@ async function onZenithFinish() {
         hintPoints += Math.floor(hintScore / hintGoal);
         hintScore = hintScore % hintGoal;
 
-        document.getElementById("ap-hint-score").innerHTML = hintScore.toFixed(1);
-        document.getElementById("ap-hint-points").innerHTML = hintPoints;
+        updateProgressTab();
 
         return;
     }
@@ -659,9 +658,12 @@ async function updateProgressTab() {
         hintScore ||= 0;
         hintPoints ||= 0;
 
-        document.getElementById("ap-hint-points").innerHTML = hintPoints;
-        document.getElementById("ap-hint-score").innerHTML = hintScore;
-        document.getElementById("ap-hint-req").innerHTML = hintGoal;    
+        document.getElementById("ap-hint-points").innerHTML = hintPoints.toFixed(1);
+        document.getElementById("ap-hint-score").innerHTML = hintScore.toFixed(1);
+        document.getElementById("ap-hint-req").innerHTML = hintGoal.toFixed(1);    
+
+        const prog = Math.min(hintScore / hintGoal, 1);
+        document.getElementById("ap-hintmode-bar-fill").style.width = `${prog * 100}%`;
     }
 
     const modsetList = document.getElementById("ap-modset-list");
