@@ -95,6 +95,11 @@ let expectDisconnect = false;
 let recentConnectFail = false;
 let chatScrolling = null;
 
+let hintMode = false;
+let hintScore = null;
+let hintGoal = null;
+let hintPoints = null;
+
 waitUntil(
     () => document.body,
     () => {
@@ -171,7 +176,8 @@ waitUntil(
             document.getElementById("ap-connect-error").innerHTML = "";
 
             expectLoginChecks = true;
-            client.login(inputs["ap-server"].value, inputs["ap-slot"].value, "TETR.AP", { password: inputs["ap-password"].value, version: { major: 0, minor: 6, build: 7 } })
+            const tags = inputs["ap-hintmode"].checked ? ["HintGame"] : [];
+            client.login(inputs["ap-server"].value, inputs["ap-slot"].value, "TETR.AP", { password: inputs["ap-password"].value, version: { major: 0, minor: 6, build: 7 }, tags })
                 .then(async () => {
                     recentConnectFail = false;
                     document.getElementById("ap-chat-messages").innerHTML = ""
@@ -183,6 +189,17 @@ waitUntil(
                     connectButton.value = "Disconnect"
                     connectButton.removeAttribute("disabled")
                     document.getElementById("ap-nav").classList.remove("disabled");
+
+                    if (inputs["ap-hintmode"].checked) {
+                        hintMode = true;
+
+                        document.getElementById("ap-progress-hintmode").style.display = "block";
+                        document.getElementById("ap-progress-standard").style.display = "none";
+                        return;
+                    }
+                    hintMode = false;
+                    document.getElementById("ap-progress-hintmode").style.display = "none";
+                    document.getElementById("ap-progress-standard").style.display = "block";
 
                     setPreference("lastServer", inputs["ap-server"].value);
                     setPreference("lastSlot", inputs["ap-slot"].value);
@@ -313,6 +330,39 @@ waitUntil(
         document.getElementById("ap-chat-messages").onscrollend = () => {
             chatScrolling = false;
         }
+
+        document.getElementById("ap-buy-hint").onclick = async () => {
+            if (!hintMode) return;
+            if (hintPoints < 1) {
+                createAPNotification("You don't have enough Hint Points!", { color: "#fa5e4d", backgroundColor: "#060606dd", timeout: 3000 })
+                return;
+            }
+            
+            const hintable = client.room.missingLocations;
+            if (hintable.length === 0) {
+                createAPNotification("There are no more hints available!", { color: "#fa5e4d", backgroundColor: "#060606dd", timeout: 3000 })
+                return;
+            }
+            
+            hintPoints -= 1;
+            document.getElementById("ap-hint-points").innerHTML = hintPoints;
+            const hintIndex = Math.floor(Math.random() * hintable.length);
+            const hint = await client.scout([hintable[hintIndex]], 1);
+
+            let notifSettings = { color: "#888888", backgroundColor: "#060606dd", timeout: 7000 };
+            if (hint[0].filler) notifSettings.color = "#01d2d3";
+            if (hint[0].useful) notifSettings.color = "#6d8be8";
+            if (hint[0].progression) notifSettings.color = "#ae98ee";
+            if (hint[0].trap) notifSettings.color = "#fa8072";
+            createAPNotification(`${hint[0].receiver}'s ${hint[0].name} is at ${hint[0].locationName}`, notifSettings);
+        }
+
+        document.getElementById("ap-hint-req-changer").onsubmit = (e) => {
+            e.preventDefault();
+            hintGoal = Math.floor(Number(document.getElementById("ap-hint-req-input").value) * 1.2);
+            setPreference("hintGoal", hintGoal);
+            document.getElementById("ap-hint-req").innerHTML = hintGoal;
+        }
     }
 )
 
@@ -411,6 +461,21 @@ async function onZenithFinish() {
     }
 
     console.log(`${TAP} Zenith run finished! ${finalScore}m, mods: ${mods}`)
+
+    if (hintMode) {
+        let scoreEarned = finalScore;
+        // TODO: multipliers and bonuses and stuff
+
+        hintScore += scoreEarned;
+        hintPoints += Math.floor(hintScore / hintGoal);
+        hintScore = hintScore % hintGoal;
+
+        document.getElementById("ap-hint-score").innerHTML = hintScore.toFixed(1);
+        document.getElementById("ap-hint-points").innerHTML = hintPoints;
+
+        return;
+    }
+
     for (const mod of mods) {
         revProgresses[mod] = revProgresses[mod] || 0;
         revProgresses[mod] += finalScore;
@@ -589,6 +654,16 @@ async function detectDifficulties() {
 }
 
 async function updateProgressTab() {
+    if (hintMode) {
+        hintGoal = hintGoal || getPreference("hintGoal") || 1000;
+        hintScore ||= 0;
+        hintPoints ||= 0;
+
+        document.getElementById("ap-hint-points").innerHTML = hintPoints;
+        document.getElementById("ap-hint-score").innerHTML = hintScore;
+        document.getElementById("ap-hint-req").innerHTML = hintGoal;    
+    }
+
     const modsetList = document.getElementById("ap-modset-list");
     modsetList.innerHTML = "";
 

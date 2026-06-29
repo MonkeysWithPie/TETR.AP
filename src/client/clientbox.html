@@ -35,7 +35,8 @@
         --ap-disabled-bg: #555;
     }
 
-    #tetrap-client-area input {
+    #tetrap-client-area input, 
+    #tetrap-client-area button:not(.header-button) {
         border: 1px solid var(--ap-disabled);
         border-radius: 2px;
         padding: 2px;
@@ -47,13 +48,16 @@
         color: var(--ap-disabled);
     }
     
-    #tetrap-client-area input[type="submit"] {
+    #tetrap-client-area input[type="submit"],
+    #tetrap-client-area button:not(.header-button) {
         padding: 2px 6px;
     }
-    #tetrap-client-area input[type="submit"]:hover {
+    #tetrap-client-area input[type="submit"]:hover, 
+    #tetrap-client-area button:not(.header-button):hover {
         background-color: rgb(from var(--ap-bg-darker) r g b / 0.7);
     }
-    #tetrap-client-area input[type="submit"]:active {
+    #tetrap-client-area input[type="submit"]:active, 
+    #tetrap-client-area button:not(.header-button):active {
         background-color: var(--ap-bg-darker);
     }
     #ap-connect-form br {
@@ -229,13 +233,23 @@
         top: 0px;
         background-color: rgb(from var(--ap-bg) r g b / 0.7);
     }
-    #ap-ach-count {
+    #ap-ach-count, #ap-hint-score, #ap-hint-points {
         font-size: 24px;
         font-weight: bold;
         font-family: HUN;
     }
-    #ap-req-count {
+    #ap-req-count, #ap-hint-req {
         font-family: HUN;
+    }
+    #ap-hintmode-earned, #ap-hintmode-progress {
+        margin: 0px;
+    }
+
+    #ap-hint-req-changer {
+        margin-top: 8px;
+    }
+    #ap-hint-req-input {
+        width: 4em;
     }
 
     .ap-modset {
@@ -279,11 +293,11 @@
 </style>
 
 <header class="tetrap">
-    <button id="ap-collapse">▶</button>
+    <button id="ap-collapse" class="header-button">▶</button>
     <p class="tetrap">TETR.AP client</p>
     <p class="tetrap" id="ap-status"></p>
     <p class="tetrap" id="ap-username"></p>
-    <button id="ap-dark-toggle">
+    <button id="ap-dark-toggle" class="header-button">
         <svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
             <!--!Font Awesome Free v7.3.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2026 Fonticons, Inc.-->
             <path d="M448 256c0-106-86-192-192-192l0 384c106 0 192-86 192-192zM0 256a256 256 0 1 1 512 0 256 256 0 1 1 -512 0z"></path>
@@ -307,6 +321,9 @@
         <label for="ap-password">Password (opt):</label>
         <input id="ap-password" type="text">
         <br>
+        <label for="ap-hintmode">Hint Mode:</label>
+        <input id="ap-hintmode" type="checkbox">
+        <br>
         <input id="ap-connect" type="submit" value="Connect">
     </form>
     <p id="ap-connect-error"></p>
@@ -318,18 +335,34 @@
     </div>
 </div>
 <div id="ap-progress-area" class="ap-tab disabled" data-tab-name="progress">
-    <p id="ap-counter-area">You currently have <span id="ap-ach-count">0</span>/<span id="ap-req-count">Y</span> Achievements required to goal.</p>
-    <div id="ap-progress-hint">
-        <p class="ap-mod-hint">Modset</p>
-        <p class="ap-floor-hint">f2</p>
-        <p class="ap-floor-hint">f3</p>
-        <p class="ap-floor-hint">f4</p>
-        <p class="ap-floor-hint">f5</p>
-        <p class="ap-floor-hint">f6</p>
-        <p class="ap-floor-hint">f7</p>
-        <p class="ap-floor-hint">f8</p>
-        <p class="ap-floor-hint">f9</p>
-        <p class="ap-floor-hint">f10</p>
+    <div id="ap-progress-standard">
+        <p id="ap-counter-area">You currently have <span id="ap-ach-count">0</span>/<span id="ap-req-count">Y</span> Achievements required to goal.</p>
+        <div id="ap-progress-hint">
+            <p class="ap-mod-hint">Modset</p>
+            <p class="ap-floor-hint">f2</p>
+            <p class="ap-floor-hint">f3</p>
+            <p class="ap-floor-hint">f4</p>
+            <p class="ap-floor-hint">f5</p>
+            <p class="ap-floor-hint">f6</p>
+            <p class="ap-floor-hint">f7</p>
+            <p class="ap-floor-hint">f8</p>
+            <p class="ap-floor-hint">f9</p>
+            <p class="ap-floor-hint">f10</p>
+        </div>
+        <div id="ap-modset-list"></div>
     </div>
-    <div id="ap-modset-list"></div>
+    <div id="ap-progress-hintmode" style="display: none;">
+        <p id="ap-hintmode-progress"><span id="ap-hint-score">0</span>/<span id="ap-hint-req">0</span> to next Hint Point</p>
+        <p id="ap-hintmode-earned">You have <span id="ap-hint-points">0</span> Hint Points</p>
+
+        <div id="ap-hint-shop">
+            <button id="ap-buy-hint">Buy hint (1HP)</button>
+        </div>
+        <br>
+        <form id="ap-hint-req-changer">
+            <label for="ap-hint-req-input">Enter the height you reach on average for unmodded runs to adjust the Hint Point requirement:</label>
+            <input id="ap-hint-req-input" type="number" min="50" value="1000">
+            <input type="submit" value="Set">
+        </form>
+    </div>
 </div>
