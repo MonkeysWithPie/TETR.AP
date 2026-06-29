@@ -103,7 +103,10 @@ waitUntil(
         // placed here in the DOM so it is shown always except during screen transitions
         document.body.insertBefore(apMenu, document.getElementById("nofocus"));
 
-        if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
+        if (getPreference("darkMode") === undefined) {
+            setPreference("darkMode", window.matchMedia("(prefers-color-scheme: dark)").matches);
+        }
+        if (getPreference("darkMode")) {
             apMenu.classList.add("dark");
         }
 
@@ -130,7 +133,9 @@ waitUntil(
         filler.style.borderBottom = "1px solid var(--ap-text)";
         document.getElementById("ap-nav").appendChild(filler);
 
-        document.getElementById("ap-server").value = "archipelago.gg:12345";
+        document.getElementById("ap-server").value = getPreference("lastServer") || "archipelago.gg:12345";
+        document.getElementById("ap-slot").value = getPreference("lastSlot") || "";
+        document.getElementById("ap-password").value = getPreference("lastPassword") || "";
 
         const body = document.getElementsByTagName("body")[0];
         for (const input of apMenu.querySelectorAll("input[type=text]")) {
@@ -145,7 +150,7 @@ waitUntil(
         }
 
         document.getElementById("ap-dark-toggle").onclick = (e) => {
-            document.getElementById("tetrap-client-area").classList.toggle("dark");
+            setPreference("darkMode", document.getElementById("tetrap-client-area").classList.toggle("dark"));
         }
 
         document.getElementById("ap-connect-form").onsubmit = (e) => {
@@ -177,6 +182,10 @@ waitUntil(
                     connectButton.value = "Disconnect"
                     connectButton.removeAttribute("disabled")
                     document.getElementById("ap-nav").classList.remove("disabled");
+
+                    setPreference("lastServer", inputs["ap-server"].value);
+                    setPreference("lastSlot", inputs["ap-slot"].value);
+                    setPreference("lastPassword", inputs["ap-password"].value);
 
                     await client.storage.fetch(["revProgresses"], true);
                     revProgresses = client.storage.store["revProgresses"];
@@ -316,6 +325,17 @@ function getFromStorage(key) {
     if (!data[client.room.seedName][client.name]) return null;
 
     return data[client.room.seedName][client.name][key];
+}
+
+function setPreference(key, val) {
+    const data = JSON.parse(localStorage.getItem("tetrap-prefs")) || {};
+    
+    data[key] = val;
+    localStorage.setItem("tetrap-prefs", JSON.stringify(data));
+}
+function getPreference(key) {
+    const data = JSON.parse(localStorage.getItem("tetrap-prefs")) || {};
+    return data[key];
 }
 
 function setTab(tabName) {
