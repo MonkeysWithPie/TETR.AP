@@ -93,6 +93,7 @@ let expectLoginChecks = false;
 let expectedChecks = [];
 let expectDisconnect = false;
 let recentConnectFail = false;
+let chatScrolling = null;
 
 waitUntil(
     () => document.body,
@@ -307,6 +308,10 @@ waitUntil(
             } else {
                 e.srcElement.innerHTML = "▶"
             }
+        }
+
+        document.getElementById("ap-chat-messages").onscrollend = () => {
+            chatScrolling = false;
         }
     }
 )
@@ -837,12 +842,16 @@ client.messages.on("message", (content, nodes) => {
     // don't scroll if the user is scrolled up...
     let shouldScroll = chatMessages.scrollTop + chatMessages.clientHeight >= chatMessages.scrollHeight - 20;
     if (content.startsWith(`${client.name}:`)) {
-        shouldScroll = true; // ...unless it's their own message
+        shouldScroll = true; // ...unless it's their own message...
+    }
+    if (chatScrolling) {
+        shouldScroll = true; // ...or if we're already scrolling
     }
 
     chatMessages.appendChild(messageElement)
     if (shouldScroll) {
         chatMessages.scroll({ top: chatMessages.scrollHeight, behavior: "smooth" })
+        chatScrolling = true;
     }
 })
 
