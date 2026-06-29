@@ -164,7 +164,6 @@ waitUntil(
             client.login(inputs["ap-server"].value, inputs["ap-slot"].value, "TETR.AP", { password: inputs["ap-password"].value, version: { major: 0, minor: 6, build: 7 } })
                 .then(async () => {
                     recentConnectFail = false;
-                    revProgresses = getFromStorage("revProgresses") || {};
                     document.getElementById("ap-chat-messages").innerHTML = ""
                     setTab("chat");
                     connectionStatus.innerHTML = `Connected`
@@ -174,6 +173,13 @@ waitUntil(
                     connectButton.value = "Disconnect"
                     connectButton.removeAttribute("disabled")
                     document.getElementById("ap-nav").classList.remove("disabled");
+
+                    await client.storage.fetch(["revProgresses"], true);
+                    revProgresses = client.storage.store["revProgresses"];
+                    if (revProgresses === null) {
+                        // attempt to copy old localStorage data
+                        revProgresses = getFromStorage("revProgresses") || {};
+                    }
 
                     await detectDifficulties();
 
@@ -214,7 +220,7 @@ waitUntil(
                     else {
                         errorElement.innerHTML = `Failed to connect! Not sure why. Check the console for more info.`;
                     }
-                    
+
                     console.error(e);
                 })
         }
@@ -307,28 +313,6 @@ function getFromStorage(key) {
 
     return data[client.room.seedName][client.name][key];
 }
-function setInStorage(key, value) {
-    // archipelago.js remembers last room and player even after a DC,
-    // so we can still save data after disconnecting and not before
-    if (!client.room.seedName || !client.name) return;
-
-    let allData = localStorage.getItem("tetr-ap-data");
-    if (!allData) {
-        allData = {};
-    } else {
-        allData = JSON.parse(allData);
-    }
-
-    if (!allData[client.room.seedName]) {
-        allData[client.room.seedName] = {};
-    }
-    if (!allData[client.room.seedName][client.name]) {
-        allData[client.room.seedName][client.name] = {};
-    }
-
-    allData[client.room.seedName][client.name][key] = value;
-    localStorage.setItem("tetr-ap-data", JSON.stringify(allData));
-}
 
 function setTab(tabName) {
     if (!client.authenticated && tabName !== "connect") return;
@@ -402,7 +386,10 @@ async function onZenithFinish() {
         revProgresses[mod] = revProgresses[mod] || 0;
         revProgresses[mod] += finalScore;
     }
-    setInStorage("revProgresses", revProgresses);
+    client.storage.prepare("revProgresses", {})
+        .default()
+        .update(revProgresses)
+        .commit(false);
     relockCards();
 
     const { comboName, comboNum } = getComboAndNum(mods);
@@ -836,11 +823,20 @@ client.messages.on("message", (content, nodes) => {
 })
 
 client.items.on("itemsReceived", async (items) => {
-    const lastIndex = getFromStorage("lastSeenItemIndex") || 0;
+    let lastIndex = client.storage.store["lastSeenItemIndex"];
+    if (!lastIndex) {
+        await client.storage.fetch(["lastSeenItemIndex"], true);
+        lastIndex = client.storage.store["lastSeenItemIndex"];
+        if (lastIndex === null) lastIndex = 0;
+    }
+
     if (expectLoginChecks) {
         items = items.slice(lastIndex);
     }
-    setInStorage("lastSeenItemIndex", items.length + lastIndex);
+    client.storage.prepare("lastSeenItemIndex", 0)
+        .default()
+        .add(items.length)
+        .commit(false);
 
     console.log(`${TAP} Received items: ${items}`)
     
