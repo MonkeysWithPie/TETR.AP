@@ -164,11 +164,26 @@
         display: none;
     }
 
-    #ap-collapse {
+    #ap-dark-toggle {
+        padding: 0px 4px;
+        margin-left: 4px;
+    }
+    #ap-dark-toggle svg {
+        width: 10px;
+        height: 10px;
+        transition: rotate 0.5s ease-out, fill 0.3s;
+        fill: var(--ap-text);
+    }
+    #tetrap-client-area.dark #ap-dark-toggle svg {
+        rotate: 900deg;
+    }
+
+    #ap-collapse, #ap-dark-toggle {
         border: none;
         background-color: rgb(from var(--ap-text) r g b / 0.1);
+        cursor: pointer;
     }
-    #ap-collapse:hover {
+    #ap-collapse:hover, #ap-dark-toggle:hover {
         background-color: rgb(from var(--ap-text) r g b / 0.2);
     }
 
@@ -187,6 +202,9 @@
         display: none;
     }
     #tetrap-client-area.collapsed #ap-username {
+        display: none;
+    }
+    #tetrap-client-area.collapsed #ap-dark-toggle {
         display: none;
     }
     #tetrap-client-area.collapsed nav {
@@ -265,6 +283,12 @@
     <p class="tetrap">TETR.AP client</p>
     <p class="tetrap" id="ap-status"></p>
     <p class="tetrap" id="ap-username"></p>
+    <button id="ap-dark-toggle">
+        <svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+            <!--!Font Awesome Free v7.3.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2026 Fonticons, Inc.-->
+            <path d="M448 256c0-106-86-192-192-192l0 384c106 0 192-86 192-192zM0 256a256 256 0 1 1 512 0 256 256 0 1 1 -512 0z"></path>
+        </svg>
+    </button>
 </header>
 <p id="ap-shortstatus">Not connected</p>
 

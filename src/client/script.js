@@ -144,6 +144,10 @@ waitUntil(
             }
         }
 
+        document.getElementById("ap-dark-toggle").onclick = (e) => {
+            document.getElementById("tetrap-client-area").classList.toggle("dark");
+        }
+
         document.getElementById("ap-connect-form").onsubmit = (e) => {
             e.preventDefault()
             if (client.authenticated) {
