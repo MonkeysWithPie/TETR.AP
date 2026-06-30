@@ -294,18 +294,16 @@
         border: 1px solid var(--ap-text);
         display: flex;
     }
+    #ap-hintmode-bar-fill, #ap-hintmode-bar-new {
+        height: 100%;
+        width: 0%;
+    }
     #ap-hintmode-bar-fill {
         background-color: #4eb85f;
-        height: 100%;
         flex-shrink: 0;
-        width: 0%;
-        transition: width 0.5s ease-out;
     }
     #ap-hintmode-bar-new {
         background-color: #88e698;
-        height: 100%;
-        width: 0%;
-        transition: width 0.5s ease-out;
     }
     #ap-hintmode-numbers {
         display: flex;
@@ -318,6 +316,74 @@
     }
     #ap-hint-req {
         color: var(--ap-disabled);
+    }
+
+    #ap-hintmode-progress-earned {
+        display: flex;
+        align-items: center;
+        flex-direction: column;
+        width: 100%;
+        position: absolute;
+        
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.4s;
+    }
+    #ap-hintmode-progress-fill {
+        font-size: 30px;
+        font-family: HUN;
+    }
+    #ap-hintmode-progress-fill.bump {
+        animation: hintmode-score-earned-increase 0.3s ease;
+    }
+    #ap-hintmode-progress-bonus {
+        font-size: 18px;
+    }
+    #ap-hintmode-progress-bonus.bump {
+        animation: hintmode-score-bonus-activate 0.2s forwards;
+    }
+    #ap-hintmode-progress-bonus:not(.bump) {
+        animation: hintmode-score-bonus-appear 0.3s forwards;
+    }
+    #ap-hintmode-progress-bonus span {
+        font-family: HUN;
+    }
+
+    #ap-hintmode-space-filler {
+        height: 0px;
+        transition: height 0.4s;
+    }
+
+    @keyframes hintmode-score-earned-increase {
+        0% {
+            transform: scale(1) translateY(0px);
+        }
+        50% {
+            transform: scale(1.2) translateY(-5px);
+        }
+        100% {
+            transform: scale(1) translateY(0px);
+        }
+    }
+    @keyframes hintmode-score-bonus-activate {
+        0% {
+            transform: scale(1) translateY(0px);
+            opacity: 1;
+        }
+        100% {
+            transform: scale(0.9) translateY(-10px);
+            opacity: 0;
+        }
+    }
+    @keyframes hintmode-score-bonus-appear {
+        0% {
+            transform: scale(0.9) translateY(10px);
+            opacity: 0;
+        }
+        100% {
+            transform: scale(1) translateY(0px);
+            opacity: 1;
+        }
     }
 
     .chatfocus.chatbg.tetrap-chatfocus #ingame_chat_container {
@@ -393,6 +459,12 @@
             <div id="ap-hint-score"></div>
             <div id="ap-hint-req"></div>
         </div>
+
+        <div id="ap-hintmode-progress-earned">
+            <div id="ap-hintmode-progress-fill">100.0</div>
+            <div id="ap-hintmode-progress-bonus" class="bump"><span>+50</span> Bonus Points</div>
+        </div>
+        <div id="ap-hintmode-space-filler"></div>
 
         <br>
         <p id="ap-hintmode-earned">You have <span id="ap-hint-points">0</span> Hint Points</p>

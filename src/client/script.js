@@ -450,6 +450,26 @@ color: white;`;
     }, timeout);
 }
 
+const modHintScoreMultipliers = {
+    "nohold": 1.5,
+    "messy": 1.25,
+    "gravity": 1.4,
+    "volatile": 1.1,
+    "doublehole": 1.25,
+    "invisible": 1.35,
+    "allspin": 1.2,
+    "expert": 2,
+
+    "nohold_reversed": 4,
+    "messy_reversed": 2.75,
+    "gravity_reversed": 3.5,
+    "volatile_reversed": 2.5,
+    "doublehole_reversed": 2.75,
+    "invisible_reversed": 5,
+    "allspin_reversed": 2,
+    "expert_reversed": 7.5,
+}
+
 async function onZenithFinish() {
     if (!client.authenticated) return;
 
@@ -463,13 +483,165 @@ async function onZenithFinish() {
     console.log(`${TAP} Zenith run finished! ${finalScore}m, mods: ${mods}`)
 
     if (hintMode) {
-        let scoreEarned = finalScore;
-        // TODO: multipliers and bonuses and stuff
+        if (document.getElementById("tetrap-client-area").classList.contains("collapsed")) {
+            document.getElementById("ap-collapse").click();
+        }
+        setTab("progress");
 
+        document.getElementById("ap-hintmode-space-filler").style.height = "40px";
+        document.getElementById("ap-hintmode-progress-earned").style.opacity = "1";
+        const scoreDisplay = document.getElementById("ap-hintmode-progress-fill");
+        const fillingBar = document.getElementById("ap-hintmode-bar-new");
+        const regularBar = document.getElementById("ap-hintmode-bar-fill");
+        scoreDisplay.innerHTML = "0.0";
+        
+        await new Promise(resolve => setTimeout(resolve, 300));
+        const scoreAnimationDuration = 500;
+        function animateHintScoreChange(newScore, finalAnimation = false) {
+            let duration = scoreAnimationDuration;
+            if (finalAnimation) {
+                duration *= 3;
+            }
+            let start; 
+            let oldScore = Number(scoreDisplay.innerHTML);
+            let oldHintScore = hintScore;
+
+            function ease(min, max, progress) {
+                return min + (max - min) * (1 - Math.pow(1 - progress, 3));
+            }
+
+            function frame(time) {
+                if (!start) start = document.timeline.currentTime;
+                const elapsed = time - start;
+
+                if (elapsed >= duration) {
+                    scoreDisplay.innerHTML = newScore.toFixed(1);
+                    return;
+                }
+                const progress = elapsed / duration;
+                const currentScore = oldScore + (newScore - oldScore) * ease(0, 1, progress);
+
+                scoreDisplay.innerHTML = currentScore.toFixed(1);
+                fillingBar.style.width = `${Math.min(1, currentScore / hintGoal) * 100}%`;
+
+                if (finalAnimation) {
+                    let regularBarScore = oldScore - currentScore + oldHintScore;
+                    regularBarScore %= hintGoal;
+                    regularBar.style.width = `${Math.min(1, regularBarScore / hintGoal) * 100}%`;
+                    document.getElementById("ap-hint-score").innerHTML = regularBarScore.toFixed(1);
+                }
+                
+                requestAnimationFrame(frame);
+            }
+
+            requestAnimationFrame(frame);
+        }
+
+        let scoreEarned = 0;
+        // TODO tasks for each run
+        let actions = [
+            { message: "Run Height", value: finalScore, type: "add" }
+        ]
+        
+        const placement = document.getElementById("zenith_results_stats_overview").children[3].children[1].innerText;
+        if (placement.split("/")[0] == 1) {
+            actions.push({ message: "Lobby's Crown", value: 100, type: "add" })
+        }
+        else if (placement.split("/")[0] <= 3) {
+            actions.push({ message: "Podium Finish", value: 50, type: "add" })
+        }
+        else if (placement.split("/")[0] <= 10) {
+            actions.push({ message: "Top Contender", value: 20, type: "add" })
+        }
+
+        const idToNameMap = {
+            "nohold": "No Hold",
+            "messy": "Messier Garbage",
+            "gravity": "Gravity",
+            "volatile": "Volatile Garbage",
+            "doublehole": "Double Hole Garbage",
+            "invisible": "Invisible",
+            "allspin": "All-Spin",
+            "expert": "Expert Mode",
+
+            "nohold_reversed": "Asceticism",
+            "messy_reversed": "Loaded Dice",
+            "gravity_reversed": "Freefall",
+            "volatile_reversed": "Last Stand",
+            "doublehole_reversed": "Damnation",
+            "invisible_reversed": "The Exile",
+            "allspin_reversed": "The Warlock",
+            "expert_reversed": "The Tyrant",
+        }
+
+        for (const mod of mods) {
+            if (modHintScoreMultipliers[mod]) {
+                actions.push({ message: `${idToNameMap[mod]} Multiplier`, value: modHintScoreMultipliers[mod], type: "mult" })
+            }
+        }
+        
+        const survivalTime = document.getElementById("zenith_results_stats_overview").children[0].children[1].innerText;
+        const survivalTimeSeconds = Number(survivalTime.split(":")[0]) * 60 + Number(survivalTime.split(":")[1]);
+        if (survivalTimeSeconds < 300) {
+            actions.push({ message: "Short Run Penalty", value: Math.max(0.25, survivalTimeSeconds / 300), type: "mult" })
+        }
+        else if (survivalTimeSeconds > 720) {
+            actions.push({ message: "Superb Survival", value: 600, type: "add" })
+        } else if (survivalTimeSeconds > 660) {
+            actions.push({ message: "Incredible Survival", value: 450, type: "add" })
+        } else if (survivalTimeSeconds > 600) {
+            actions.push({ message: "Excellent Survival", value: 350, type: "add" })
+        } else if (survivalTimeSeconds > 540) {
+            actions.push({ message: "Great Survival", value: 200, type: "add" })
+        } else if (survivalTimeSeconds > 480) {
+            actions.push({ message: "Good Survival", value: 100, type: "add" })
+        }
+
+        const backToBack = Number(document.getElementById("zenith_results_stats_overview").children[14].children[1].innerText);
+        if (backToBack >= 25) {
+            actions.push({ message: "Supercharged Skill", value: backToBack * 4, type: "add" })
+        }
+
+        const allClears = Number(document.getElementById("zenith_results_stats_full").children[23].children[1].innerText);
+        if (allClears > 0) {
+            actions.push({ message: "Perfect Clear Mastery", value: allClears * 15, type: "add" })
+        }
+        
+        const bonusText = document.getElementById("ap-hintmode-progress-bonus")
+        for (const action of actions) {
+            if (action.type === "add") {
+                bonusText.innerHTML = `<span>+${action.value.toFixed(1)}</span>`;
+                scoreEarned += action.value;
+            }
+            if (action.type === "mult") {
+                bonusText.innerHTML = `<span>x${action.value.toFixed(2)}</span>`;
+                scoreEarned *= action.value;
+            }
+            bonusText.innerHTML += ` ${action.message}`;
+            bonusText.classList.remove("bump");
+            scoreDisplay.classList.remove("bump");
+            
+            await new Promise(resolve => setTimeout(resolve, 2000));
+
+            bonusText.classList.add("bump");
+            scoreDisplay.classList.add("bump");
+            animateHintScoreChange(scoreEarned);
+
+            await new Promise(resolve => setTimeout(resolve, 300));
+        }
+
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        animateHintScoreChange(0, true);
         hintScore += scoreEarned;
         hintPoints += Math.floor(hintScore / hintGoal);
         hintScore = hintScore % hintGoal;
+        
+        await new Promise(resolve => setTimeout(resolve, scoreAnimationDuration * 3));
 
+        document.getElementById("ap-hintmode-space-filler").style.height = "0px";
+        document.getElementById("ap-hintmode-progress-earned").style.opacity = "0";
+        
         updateProgressTab();
 
         return;
@@ -658,7 +830,7 @@ async function updateProgressTab() {
         hintScore ||= 0;
         hintPoints ||= 0;
 
-        document.getElementById("ap-hint-points").innerHTML = hintPoints.toFixed(1);
+        document.getElementById("ap-hint-points").innerHTML = hintPoints;
         document.getElementById("ap-hint-score").innerHTML = hintScore.toFixed(1);
         document.getElementById("ap-hint-req").innerHTML = hintGoal.toFixed(1);    
 
