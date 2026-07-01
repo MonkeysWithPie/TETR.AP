@@ -177,7 +177,12 @@ waitUntil(
 
             expectLoginChecks = true;
             const tags = inputs["ap-hintmode"].checked ? ["HintGame"] : [];
-            client.login(inputs["ap-server"].value, inputs["ap-slot"].value, inputs["ap-hintmode"] ? "" : "TETR.AP", { password: inputs["ap-password"].value, version: { major: 0, minor: 6, build: 7 }, tags })
+            client.login(inputs["ap-server"].value, inputs["ap-slot"].value, inputs["ap-hintmode"] ? "" : "TETR.AP", { 
+                password: inputs["ap-password"].value,
+                version: { major: 0, minor: 6, build: 7 }, 
+                tags,
+                items: inputs["ap-hintmode"].checked ? 0 : 7,
+            })
                 .then(async () => {
                     recentConnectFail = false;
                     document.getElementById("ap-chat-messages").innerHTML = ""
@@ -1105,6 +1110,8 @@ client.messages.on("message", (content, nodes) => {
 })
 
 client.items.on("itemsReceived", async (items) => {
+    if (hintMode) return;
+
     let lastIndex = client.storage.store["lastSeenItemIndex"];
     if (!lastIndex) {
         await client.storage.fetch(["lastSeenItemIndex"], true);
