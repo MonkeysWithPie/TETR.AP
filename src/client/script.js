@@ -195,6 +195,10 @@ waitUntil(
                     connectButton.removeAttribute("disabled")
                     document.getElementById("ap-nav").classList.remove("disabled");
 
+                    setPreference("lastServer", inputs["ap-server"].value);
+                    setPreference("lastSlot", inputs["ap-slot"].value);
+                    setPreference("lastPassword", inputs["ap-password"].value);
+
                     if (inputs["ap-hintmode"].checked) {
                         hintMode = true;
 
@@ -205,10 +209,6 @@ waitUntil(
                     hintMode = false;
                     document.getElementById("ap-progress-hintmode").style.display = "none";
                     document.getElementById("ap-progress-standard").style.display = "block";
-
-                    setPreference("lastServer", inputs["ap-server"].value);
-                    setPreference("lastSlot", inputs["ap-slot"].value);
-                    setPreference("lastPassword", inputs["ap-password"].value);
 
                     await client.storage.fetch(["revProgresses"], true);
                     revProgresses = client.storage.store["revProgresses"];
