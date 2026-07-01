@@ -177,7 +177,7 @@ waitUntil(
 
             expectLoginChecks = true;
             const tags = inputs["ap-hintmode"].checked ? ["HintGame"] : [];
-            client.login(inputs["ap-server"].value, inputs["ap-slot"].value, "TETR.AP", { password: inputs["ap-password"].value, version: { major: 0, minor: 6, build: 7 }, tags })
+            client.login(inputs["ap-server"].value, inputs["ap-slot"].value, inputs["ap-hintmode"] ? "" : "TETR.AP", { password: inputs["ap-password"].value, version: { major: 0, minor: 6, build: 7 }, tags })
                 .then(async () => {
                     recentConnectFail = false;
                     document.getElementById("ap-chat-messages").innerHTML = ""
