@@ -488,8 +488,10 @@ async function onZenithFinish() {
     console.log(`${TAP} Zenith run finished! ${finalScore}m, mods: ${mods}`)
 
     if (hintMode) {
+        let autoClose = false;
         if (document.getElementById("tetrap-client-area").classList.contains("collapsed")) {
             document.getElementById("ap-collapse").click();
+            autoClose = true;
         }
         setTab("progress");
 
@@ -648,6 +650,11 @@ async function onZenithFinish() {
         document.getElementById("ap-hintmode-progress-earned").style.opacity = "0";
         
         updateProgressTab();
+
+        if (autoClose) {
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            document.getElementById("ap-collapse").click();
+        }
 
         return;
     }
