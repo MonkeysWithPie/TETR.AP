@@ -464,6 +464,7 @@ const modHintScoreMultipliers = {
     "invisible": 1.35,
     "allspin": 1.2,
     "expert": 2,
+    "duo": 0.9,
 
     "nohold_reversed": 4,
     "messy_reversed": 2.75,
@@ -473,6 +474,7 @@ const modHintScoreMultipliers = {
     "invisible_reversed": 5,
     "allspin_reversed": 2,
     "expert_reversed": 7.5,
+    "duo_reversed": 2.5,
 }
 
 async function onZenithFinish() {
@@ -570,6 +572,7 @@ async function onZenithFinish() {
             "invisible": "Invisible",
             "allspin": "All-Spin",
             "expert": "Expert Mode",
+            "duo": "Duo",
 
             "nohold_reversed": "Asceticism",
             "messy_reversed": "Loaded Dice",
@@ -579,12 +582,18 @@ async function onZenithFinish() {
             "invisible_reversed": "The Exile",
             "allspin_reversed": "The Warlock",
             "expert_reversed": "The Tyrant",
+            "duo_reversed": "Bleeding Hearts",
         }
 
         for (const mod of mods) {
             if (modHintScoreMultipliers[mod]) {
                 actions.push({ message: `${idToNameMap[mod]} Multiplier`, value: modHintScoreMultipliers[mod], type: "mult" })
             }
+        }
+
+        if (mods.includes("duo") || mods.includes("duo_reversed")) {
+            const contributionPercent = Number(document.getElementById("zenith_contribution_self").children[0].textContent.replace("%",""));
+            actions.push({ message: "Duo Contribution", value: contributionPercent * 2 / 100, type: "mult" })
         }
         
         const survivalTime = document.getElementById("zenith_results_stats_overview").children[0].children[1].innerText;
