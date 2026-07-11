@@ -596,8 +596,8 @@ async function onZenithFinish() {
         
         const survivalTime = document.getElementById("zenith_results_stats_overview").children[0].children[1].innerText;
         const survivalTimeSeconds = Number(survivalTime.split(":")[0]) * 60 + Number(survivalTime.split(":")[1]);
-        if (survivalTimeSeconds < 300) {
-            actions.push({ message: "Short Run Penalty", value: Math.max(0.25, survivalTimeSeconds / 300), type: "mult" })
+        if (survivalTimeSeconds < 240) {
+            actions.push({ message: "Short Run Penalty", value: Math.max(0.25, Math.log(survivalTimeSeconds / 24)), type: "mult" })
         }
         else if (survivalTimeSeconds > 720) {
             actions.push({ message: "Superb Survival", value: 600, type: "add" })
@@ -613,12 +613,27 @@ async function onZenithFinish() {
 
         const backToBack = Number(document.getElementById("zenith_results_stats_overview").children[14].children[1].innerText);
         if (backToBack >= 25) {
-            actions.push({ message: "Supercharged Skill", value: backToBack * 4, type: "add" })
+            actions.push({ message: "Supercharged Skill", value: backToBack * 2.5, type: "add" })
         }
 
         const allClears = Number(document.getElementById("zenith_results_stats_full").children[23].children[1].innerText);
         if (allClears > 0) {
-            actions.push({ message: "Perfect Clear Mastery", value: allClears * 15, type: "add" })
+            actions.push({ message: "Perfect Clear Mastery", value: allClears * 30, type: "add" })
+        }
+
+        const finessePercent = Number(document.getElementById("zenith_results_stats_full").children[24].children[1].innerText.replace("%",""));
+        const piecesPlaced = Number(document.getElementById("zenith_results_stats_full").children[2].children[1].innerText.replace(",",""));
+        const finesseBonusAllowed = piecesPlaced >= 100 && survivalTimeSeconds >= 180;
+        if (finessePercent >= 100 && finesseBonusAllowed) {
+            actions.push({ message: "Perfect Finesse", value: piecesPlaced * 4, type: "add" })
+        } else if (finessePercent > 98 && finesseBonusAllowed) {
+            actions.push({ message: "Magnificent Finesse", value: piecesPlaced * 1.9, type: "add" })
+        } else if (finessePercent > 95 && finesseBonusAllowed) {
+            actions.push({ message: "Exquisite Finesse", value: piecesPlaced * 0.8, type: "add" })
+        } else if (finessePercent > 90 && finesseBonusAllowed) {
+            actions.push({ message: "Refined Finesse", value: piecesPlaced * 0.25, type: "add" })
+        } else if (finessePercent > 85 && finesseBonusAllowed) {
+            actions.push({ message: "Solid Finesse", value: piecesPlaced * 0.1, type: "add" })
         }
         
         const bonusText = document.getElementById("ap-hintmode-progress-bonus")
