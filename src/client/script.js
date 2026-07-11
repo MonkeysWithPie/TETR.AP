@@ -589,7 +589,8 @@ async function onZenithFinish() {
             }
         }
 
-        if (mods.includes("duo") || mods.includes("duo_reversed")) {
+        const duo = mods.includes("duo") || mods.includes("duo_reversed");
+        if (duo) {
             const contributionPercent = Number(document.getElementById("zenith_contribution_self").children[0].textContent.replace("%",""));
             actions.push({ message: "Duo Contribution", value: contributionPercent * 2 / 100, type: "mult" })
         }
@@ -611,19 +612,26 @@ async function onZenithFinish() {
             actions.push({ message: "Good Survival", value: 100, type: "add" })
         }
 
-        const backToBack = Number(document.getElementById("zenith_results_stats_overview").children[14].children[1].innerText);
+        let backToBack = Number(document.getElementById("zenith_results_stats_overview").children[14].children[1].innerText);
+        if (duo) backToBack = Number(document.getElementById("zenith_results_stats_overview").children[15].children[1].innerText.split("  ")[0]);
         if (backToBack >= 25) {
             actions.push({ message: "Supercharged Skill", value: backToBack * 2.5, type: "add" })
         }
 
-        const allClears = Number(document.getElementById("zenith_results_stats_full").children[23].children[1].innerText);
+        let allClears = Number(document.getElementById("zenith_results_stats_full").children[23].children[1].innerText);
+        if (duo) allClears = Number(document.getElementById("zenith_results_stats_full").children[23].children[1].innerText.split("  ")[1]);
         if (allClears > 0) {
             actions.push({ message: "Perfect Clear Mastery", value: allClears * 30, type: "add" })
         }
 
-        const finessePercent = Number(document.getElementById("zenith_results_stats_full").children[24].children[1].innerText.replace("%",""));
-        const piecesPlaced = Number(document.getElementById("zenith_results_stats_full").children[2].children[1].innerText.replace(",",""));
+        let finessePercent = Number(document.getElementById("zenith_results_stats_full").children[24].children[1].innerText.replace("%",""));
+        if (duo) finessePercent = Number(document.getElementById("zenith_results_stats_full").children[24].children[1].innerText.split("  ")[1].replace("%",""));
+
+        let piecesPlaced = Number(document.getElementById("zenith_results_stats_full").children[2].children[1].innerText.replace(",",""));
+        if (duo) piecesPlaced = Number(document.getElementById("zenith_results_stats_full").children[2].children[1].innerText.split("  ")[1].replace(",",""));
+
         const finesseBonusAllowed = piecesPlaced >= 100 && survivalTimeSeconds >= 180;
+
         if (finessePercent >= 100 && finesseBonusAllowed) {
             actions.push({ message: "Perfect Finesse", value: piecesPlaced * 4, type: "add" })
         } else if (finessePercent > 98 && finesseBonusAllowed) {
