@@ -490,6 +490,8 @@ async function onZenithFinish() {
     console.log(`${TAP} Zenith run finished! ${finalScore}m, mods: ${mods}`)
 
     if (hintMode) {
+        if (finalScore < 10) return;
+
         if (document.getElementById("tetrap-client-area").classList.contains("collapsed")) {
             document.getElementById("ap-collapse").click();
         }
