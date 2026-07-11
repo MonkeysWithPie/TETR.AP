@@ -875,6 +875,7 @@ async function updateProgressTab() {
 
         const prog = Math.min(hintScore / hintGoal, 1);
         document.getElementById("ap-hintmode-bar-fill").style.width = `${prog * 100}%`;
+        return;
     }
 
     const modsetList = document.getElementById("ap-modset-list");
