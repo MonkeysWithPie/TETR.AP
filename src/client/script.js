@@ -364,7 +364,7 @@ waitUntil(
 
         document.getElementById("ap-hint-req-changer").onsubmit = (e) => {
             e.preventDefault();
-            hintGoal = Math.floor(Number(document.getElementById("ap-hint-req-input").value) * 1.2);
+            hintGoal = Number(document.getElementById("ap-hint-req-input").value) * 1.2;
             setPreference("hintGoal", hintGoal);
             updateProgressTab();
         }
@@ -894,7 +894,8 @@ async function updateProgressTab() {
 
         document.getElementById("ap-hint-points").innerHTML = hintPoints;
         document.getElementById("ap-hint-score").innerHTML = hintScore.toFixed(1);
-        document.getElementById("ap-hint-req").innerHTML = hintGoal.toFixed(1);    
+        document.getElementById("ap-hint-req").innerHTML = hintGoal.toFixed(1);
+        document.getElementById("ap-hint-req-input").value = (hintGoal / 1.2).toFixed(0);
 
         const prog = Math.min(hintScore / hintGoal, 1);
         document.getElementById("ap-hintmode-bar-fill").style.width = `${prog * 100}%`;
