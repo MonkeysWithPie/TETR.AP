@@ -490,10 +490,8 @@ async function onZenithFinish() {
     console.log(`${TAP} Zenith run finished! ${finalScore}m, mods: ${mods}`)
 
     if (hintMode) {
-        let autoClose = false;
         if (document.getElementById("tetrap-client-area").classList.contains("collapsed")) {
             document.getElementById("ap-collapse").click();
-            autoClose = true;
         }
         setTab("progress");
 
@@ -660,11 +658,6 @@ async function onZenithFinish() {
         
         updateProgressTab();
 
-        if (autoClose) {
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            document.getElementById("ap-collapse").click();
-        }
-
         return;
     }
 
@@ -784,6 +777,31 @@ async function waitForZenithFinish() {
             () => waitForZenithFinish()
         )
     });
+}
+
+async function collapseOnZenithStart() {
+    waitUntil(() => {
+        return  document.getElementById("zenithmenu").classList.contains("rolledup") 
+            && !document.getElementById("zenithmenu").classList.contains("thidden");
+    }, () => {
+        let collapsed = false;
+        if (!document.getElementById("tetrap-client-area").classList.contains("collapsed")) {
+            document.getElementById("ap-collapse").click();
+            collapsed = true;
+        }
+        
+        waitUntil(() => {
+            return !document.getElementById("zenithmenu").classList.contains("rolledup")
+        }, () => {
+            // don't re-collapse if already collapsed, or if hint mode results are being shown
+            if (collapsed && document.getElementById("tetrap-client-area").classList.contains("collapsed")
+                && document.getElementById("ap-hintmode-progress-earned").style.opacity !== "1") {
+                document.getElementById("ap-collapse").click();
+            }
+
+            collapseOnZenithStart();
+        })
+    })
 }
 
 async function detectDifficulties() {
@@ -1064,6 +1082,7 @@ waitUntil(
         menu.classList.add("after-menu-load");
         
         waitForZenithFinish();
+        collapseOnZenithStart();
     }
 )
 
