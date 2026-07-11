@@ -5,7 +5,7 @@ const TAP = "[TETR.AP]"
 
 const { Client, clientStatuses } = await import("https://unpkg.com/archipelago.js/dist/archipelago.min.js");
 
-async function waitUntil(predicate, trigger, interval = 200) {
+async function waitUntil(predicate, trigger, interval = 30) {
     while (!await predicate()) {
       await new Promise(res => setTimeout(res, interval));
     }
