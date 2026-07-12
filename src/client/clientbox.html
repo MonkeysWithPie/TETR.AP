@@ -60,6 +60,13 @@
     #tetrap-client-area button:not(.header-button):active {
         background-color: var(--ap-bg-darker);
     }
+
+    #tetrap-client-area input[type="submit"]:disabled, 
+    #tetrap-client-area button:not(.header-button):disabled {
+        background-color: var(--ap-disabled-bg);
+        color: var(--ap-disabled);
+    }
+
     #ap-connect-form br {
         margin: 4px 0px;
     }
@@ -470,7 +477,11 @@
         <p id="ap-hintmode-earned">You have <span id="ap-hint-points">0</span> Hint Points</p>
 
         <div id="ap-hint-shop">
-            <button id="ap-buy-hint">Buy hint (1HP)</button>
+            <button id="ap-buy-rand">Random Hint (1HP)</button> <span style="font-size: 12px;color: var(--ap-disabled);"> (This hint can be a duplicate!)</span>
+            <br>
+            <button id="ap-buy-new">New Hint (2HP)</button>
+            <br>
+            <button id="ap-buy-prog">Progression Hint (3HP)</button>
         </div>
         <br>
         <form id="ap-hint-req-changer">

@@ -336,35 +336,13 @@ waitUntil(
             chatScrolling = false;
         }
 
-        document.getElementById("ap-buy-hint").onclick = async () => {
-            if (!hintMode) return;
-            if (hintPoints < 1) {
-                createAPNotification("You don't have enough Hint Points!", { color: "#fa5e4d", backgroundColor: "#060606dd", timeout: 3000 })
-                return;
-            }
-            
-            const hintable = client.room.missingLocations;
-            if (hintable.length === 0) {
-                createAPNotification("There are no more hints available!", { color: "#fa5e4d", backgroundColor: "#060606dd", timeout: 3000 })
-                return;
-            }
-            
-            hintPoints -= 1;
-            updateProgressTab();
-            const hintIndex = Math.floor(Math.random() * hintable.length);
-            const hint = await client.scout([hintable[hintIndex]], 1);
-
-            let notifSettings = { color: "#888888", backgroundColor: "#060606dd", timeout: 7000 };
-            if (hint[0].filler) notifSettings.color = "#01d2d3";
-            if (hint[0].useful) notifSettings.color = "#6d8be8";
-            if (hint[0].progression) notifSettings.color = "#ae98ee";
-            if (hint[0].trap) notifSettings.color = "#fa8072";
-            createAPNotification(`${hint[0].receiver}'s ${hint[0].name} is at ${hint[0].locationName}`, notifSettings);
-        }
+        document.getElementById("ap-buy-rand").onclick = () => buyHint("rand");
+        document.getElementById("ap-buy-new").onclick = () => buyHint("new");
+        document.getElementById("ap-buy-prog").onclick = () => buyHint("prog");
 
         document.getElementById("ap-hint-req-changer").onsubmit = (e) => {
             e.preventDefault();
-            hintGoal = Number(document.getElementById("ap-hint-req-input").value) * 1.2;
+            hintGoal = Number(document.getElementById("ap-hint-req-input").value) * 0.8;
             setPreference("hintGoal", hintGoal);
             updateProgressTab();
         }
@@ -453,6 +431,54 @@ color: white;`;
             notification.remove();
         }, 600)
     }, timeout);
+}
+
+async function buyHint(type) {
+    if (!hintMode) return;
+    const prices = {
+        "rand": 1,
+        "new": 2,
+        "prog": 3,
+    }
+    if (hintPoints < prices[type]) {
+        updateProgressTab();
+        return;
+    }
+
+    let hintable = client.room.missingLocations;
+    if (type !== "rand") {
+        let hinted = client.items.hints.map(h => h.locationId);
+        hintable = hintable.filter(l => !hinted.includes(l));
+    }
+
+    let hintValid = false;
+    let hint, hintIndex;
+    let atts = 0;
+    while (!hintValid) {
+        atts++;
+        if (atts > 100) {
+            createAPNotification("No valid hints found!", { color: "#fa5e4d", backgroundColor: "#060606dd", timeout: 5000 });
+            return;
+        }
+
+        hintIndex = Math.floor(Math.random() * hintable.length);
+        hint = await client.scout([hintable[hintIndex]], 0);
+
+        if (type === "prog" && !hint[0].progression) continue;
+        hintValid = true;
+    }
+
+    await client.scout([hintable[hintIndex]], 1);
+    hintPoints -= prices[type];
+
+    let notifSettings = { color: "#888888", backgroundColor: "#060606dd", timeout: 7000 };
+    if (hint[0].filler) notifSettings.color = "#01d2d3";
+    if (hint[0].useful) notifSettings.color = "#6d8be8";
+    if (hint[0].progression) notifSettings.color = "#ae98ee";
+    if (hint[0].trap) notifSettings.color = "#fa8072";
+    createAPNotification(`${hint[0].receiver}'s ${hint[0].name} is at ${hint[0].locationName}`, notifSettings);
+
+    updateProgressTab();
 }
 
 const modHintScoreMultipliers = {
@@ -897,7 +923,20 @@ async function updateProgressTab() {
         document.getElementById("ap-hint-points").innerHTML = hintPoints;
         document.getElementById("ap-hint-score").innerHTML = hintScore.toFixed(1);
         document.getElementById("ap-hint-req").innerHTML = hintGoal.toFixed(1);
-        document.getElementById("ap-hint-req-input").value = (hintGoal / 1.2).toFixed(0);
+        document.getElementById("ap-hint-req-input").value = (hintGoal / 0.8).toFixed(0);
+
+        const prices = {
+            "rand": 1,
+            "new": 2,
+            "prog": 3,
+        }
+        for (const [type, price] of Object.entries(prices)) {
+            if (hintPoints < price) {
+                document.getElementById(`ap-buy-${type}`).setAttribute("disabled", "true");
+            } else {
+                document.getElementById(`ap-buy-${type}`).removeAttribute("disabled");
+            }
+        }
 
         const prog = Math.min(hintScore / hintGoal, 1);
         document.getElementById("ap-hintmode-bar-fill").style.width = `${prog * 100}%`;
