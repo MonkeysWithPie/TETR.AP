@@ -626,7 +626,7 @@ async function onZenithFinish() {
         const survivalTime = document.getElementById("zenith_results_stats_overview").children[0].children[1].innerText;
         const survivalTimeSeconds = Number(survivalTime.split(":")[0]) * 60 + Number(survivalTime.split(":")[1]);
         if (survivalTimeSeconds < 240) {
-            actions.push({ message: "Short Run Penalty", value: Math.max(0.25, Math.log(survivalTimeSeconds / 24)), type: "mult" })
+            actions.push({ message: "Short Run Penalty", value: Math.max(0.25, Math.log10(survivalTimeSeconds / 24)), type: "mult" })
         }
         else if (survivalTimeSeconds > 720) {
             actions.push({ message: "Superb Survival", value: 600, type: "add" })
