@@ -4,5 +4,8 @@
   },
   "scripts": {
     "build": "node scripts/build-client.js"
+  },
+  "devDependencies": {
+    "puppeteer-core": "^25.3.0"
   }
 }
