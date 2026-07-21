@@ -611,9 +611,17 @@ async function onZenithFinish() {
             "duo_reversed": "Bleeding Hearts",
         }
 
-        for (const mod of mods) {
-            if (modHintScoreMultipliers[mod]) {
-                actions.push({ message: `${idToNameMap[mod]} Multiplier`, value: modHintScoreMultipliers[mod], type: "mult" })
+        if (mods.length > 2) {
+            let mult = 1;
+            for (const mod of mods) {
+                mult *= modHintScoreMultipliers[mod] || 1;
+            }
+            actions.push({ message: "Mod Multiplier", value: mult, type: "mult" })
+        } else {
+            for (const mod of mods) {
+                if (modHintScoreMultipliers[mod]) {
+                    actions.push({ message: `${idToNameMap[mod]} Multiplier`, value: modHintScoreMultipliers[mod], type: "mult" })
+                }
             }
         }
 
