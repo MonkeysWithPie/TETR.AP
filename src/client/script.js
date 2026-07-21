@@ -155,6 +155,28 @@ waitUntil(
             }
         }
 
+        const hintMultiplierDisplay = document.createElement("p")
+        hintMultiplierDisplay.id = "ap-hintmode-mult-solo";
+        hintMultiplierDisplay.classList.add("ap-mod-mult");
+        hintMultiplierDisplay.innerHTML = "<span>X1.00</span> score";
+        document.getElementById("start_zenith").appendChild(hintMultiplierDisplay);
+        const hintMultiplierDisplayDuo = hintMultiplierDisplay.cloneNode(true);
+        hintMultiplierDisplayDuo.id = "ap-hintmode-mult-duo";
+        document.getElementById("zenith_party_ready").appendChild(hintMultiplierDisplayDuo);
+
+        for (const card of document.getElementsByClassName("zenith_card")) {
+            card.addEventListener("animationstart", (e) => {
+                if (["ZenithCardRot", "ZenithCardReverseSpin"].includes(e.animationName)) {
+                    updateModMultiplierDisplay();
+                }
+            })
+            card.addEventListener("click", async () => {
+                // TODO: better way to do this?
+                await new Promise(resolve => setTimeout(resolve, 20));
+                updateModMultiplierDisplay();
+            })
+        }
+
         document.getElementById("ap-dark-toggle").onclick = (e) => {
             setPreference("darkMode", document.getElementById("tetrap-client-area").classList.toggle("dark"));
         }
@@ -204,6 +226,8 @@ waitUntil(
 
                         document.getElementById("ap-progress-hintmode").style.display = "block";
                         document.getElementById("ap-progress-standard").style.display = "none";
+                        body.classList.add("ap-hintmode");
+                        updateModMultiplierDisplay();
                         return;
                     }
                     hintMode = false;
@@ -282,6 +306,7 @@ waitUntil(
             connectButton.value = "Connect"
             connectButton.removeAttribute("disabled")
             document.getElementById("ap-nav").classList.add("disabled");
+            body.classList.remove("ap-hintmode");
 
             const inputs = document.getElementById("ap-connect-form").elements
             for (const input of inputs) { input.removeAttribute("disabled"); };
@@ -501,6 +526,26 @@ const modHintScoreMultipliers = {
     "allspin_reversed": 2,
     "expert_reversed": 7.5,
     "duo_reversed": 2.5,
+}
+
+function updateModMultiplierDisplay() {
+    if (!hintMode) return;
+    
+    let multiplier = 1;
+    const reverse = document.querySelector(".zenith_card.reversed");
+
+    if (reverse) {
+        multiplier = modHintScoreMultipliers[reverse.getAttribute("data-card") + "_reversed"] || 1;
+    } else {
+        const modCards = document.querySelectorAll(".zenith_card.active");
+        for (const modCard of modCards) {
+            multiplier *= modHintScoreMultipliers[modCard.getAttribute("data-card")] || 1;
+        }
+    }
+
+    let text = `<span>X${multiplier.toFixed(2)}</span> score`;
+    document.getElementById("ap-hintmode-mult-solo").innerHTML = text;
+    document.getElementById("ap-hintmode-mult-duo").innerHTML = text;
 }
 
 async function onZenithFinish() {
