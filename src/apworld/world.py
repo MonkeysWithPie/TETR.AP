@@ -8,10 +8,10 @@ from . import options as tetr_ap_options
 class TetrAPWorld(World):
     """
     TETR.IO is an online multiplayer Tetris-like game.
-    TETR.AP randomizes achievements and tarot unlocks.
+    The Archipelago mod, TETR.AP, randomizes achievements and tarot unlocks.
     """
 
-    game = "TETR.AP"
+    game = "TETR.IO"
 
     web = web_world.TetrAPWebWorld()
 

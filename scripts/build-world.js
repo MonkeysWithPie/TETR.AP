@@ -26,11 +26,11 @@ if (!archipelagoPath) {
 }
 
 function buildWorld() {
-    fs.cpSync(path.join(__dirname, "../src/apworld"), path.join(archipelagoPath, "worlds/tetr_ap"), { recursive: true });
+    fs.cpSync(path.join(__dirname, "../src/apworld"), path.join(archipelagoPath, "worlds/tetrio"), { recursive: true });
     
     process.chdir(archipelagoPath);
-    child_process.execSync('py -3.13.13 Launcher.py "Build APWorlds" -- "TETR.AP"');
-    fs.copyFileSync(path.join(archipelagoPath, "build/apworlds/tetr_ap.apworld"), path.join(__dirname, "../dist/tetr_ap.apworld"));
+    child_process.execSync('py -3.13.13 Launcher.py "Build APWorlds" -- "TETR.IO"');
+    fs.copyFileSync(path.join(archipelagoPath, "build/apworlds/tetrio.apworld"), path.join(__dirname, "../dist/tetrio.apworld"));
 
     console.log("Build complete!")
 }

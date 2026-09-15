@@ -199,12 +199,13 @@ waitUntil(
 
             expectLoginChecks = true;
             const tags = inputs["ap-hintmode"].checked ? ["HintGame"] : [];
-            client.login(inputs["ap-server"].value, inputs["ap-slot"].value, inputs["ap-hintmode"] ? "" : "TETR.AP", { 
+            client.login(inputs["ap-server"].value, inputs["ap-slot"].value, inputs["ap-hintmode"] ? "" : "TETR.IO", { 
                 password: inputs["ap-password"].value,
                 version: { major: 0, minor: 6, build: 7 }, 
                 tags,
                 items: inputs["ap-hintmode"].checked ? 0 : 7,
             })
+                // TODO: fix successfully connecting with TextOnly tag since archipelago hates me
                 .then(async () => {
                     recentConnectFail = false;
                     document.getElementById("ap-chat-messages").innerHTML = ""
@@ -335,7 +336,7 @@ waitUntil(
                 }
             }
             if (packet.errors.includes("InvalidGame")) {
-                errorMessage = `The slot you are trying to connect to is not running TETR.AP!`;
+                errorMessage = `The slot you are trying to connect to is not running TETR.IO!`;
             }
             if (packet.errors.includes("InvalidVersion")) {
                 errorMessage = `The server is running an incompatible version of Archipelago! This client may have an update available, or the server could be outdated.`;

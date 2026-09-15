@@ -38,7 +38,7 @@ for filler_name in filler_items:
     ITEM_CLASSES[filler_name] = ItemClassification.filler
 
 class TetrAPItem(Item):
-    game = "TETR.AP"
+    game = "TETR.IO"
 
 def create_filler(world: TetrAPWorld) -> str:
     if (world.random.randint(1, 100) <= world.options.filler_item_boost_rate) and world.options.allow_reversed_mods:

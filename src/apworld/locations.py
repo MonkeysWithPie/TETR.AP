@@ -22,7 +22,7 @@ for floor in range (2, 11):
     LOCATION_NAME_TO_ID[f"Floor {floor} Reached (Swamp Water Lite)"] = floor + idx*100
 
 class TetrAPLocation(Location):
-    game = "TETR.AP"
+    game = "TETR.IO"
 
 def get_location_names_with_ids(location_names: list[str]) -> dict[str, int | None]:
     return {location_name: LOCATION_NAME_TO_ID[location_name] for location_name in location_names}
