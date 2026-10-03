@@ -106,8 +106,7 @@ let chatScrolling = null;
 
 let hintMode = false;
 let hintScore = null;
-let hintGoal = null;
-let hintPoints = null;
+let hintPriceMult = null;
 
 waitUntil(
     () => document.body,
@@ -171,6 +170,13 @@ waitUntil(
         const hintMultiplierDisplayDuo = hintMultiplierDisplay.cloneNode(true);
         hintMultiplierDisplayDuo.id = "ap-hintmode-mult-duo";
         document.getElementById("zenith_party_ready").appendChild(hintMultiplierDisplayDuo);
+
+        document.getElementById("ap-buy-hint").onclick = buyHint;
+        for (const checkbox of document.getElementById("ap-hint-shop-form").getElementsByTagName("input")) {
+            checkbox.onchange = () => {
+                updateProgressTab();
+            }
+        }
 
         for (const card of document.getElementsByClassName("zenith_card")) {
             card.addEventListener("animationstart", (e) => {
@@ -370,14 +376,10 @@ waitUntil(
             chatScrolling = false;
         }
 
-        document.getElementById("ap-buy-rand").onclick = () => buyHint("rand");
-        document.getElementById("ap-buy-new").onclick = () => buyHint("new");
-        document.getElementById("ap-buy-prog").onclick = () => buyHint("prog");
-
         document.getElementById("ap-hint-req-changer").onsubmit = (e) => {
             e.preventDefault();
-            hintGoal = Number(document.getElementById("ap-hint-req-input").value) * 0.8;
-            setPreference("hintGoal", hintGoal);
+            hintPriceMult = Number(document.getElementById("ap-hint-req-input").value);
+            setPreference("hintGoal", hintPriceMult);
             updateProgressTab();
         }
     }
@@ -474,23 +476,47 @@ color: white;`;
     return notification;
 }
 
-async function buyHint(type) {
+function getNewHintPrice() {
+    const missing = client.room.missingLocations;
+    const hinted = client.items.hints.map(h => h.item.locationId);
+    const newHints = missing.filter(l => !hinted.includes(l));
+    const percentNew = newHints.length / missing.length;
+
+    if (percentNew === 0) return 1;
+    return Math.max(1, 1 / Math.pow(percentNew, 1.5));
+}
+
+function getHintPrice() {
+    const newHint = document.getElementById("ap-hint-new-only").checked;
+    const filterTraps = document.getElementById("ap-hint-no-traps").checked;
+    const filterFiller = document.getElementById("ap-hint-no-filler").checked;
+    const filterUseful = document.getElementById("ap-hint-no-useful").checked;
+
+    let priceMult = 1;
+    if (newHint) priceMult *= getNewHintPrice();
+    if (filterTraps) priceMult *= 1.2;
+    if (filterFiller) priceMult *= 1.8;
+    if (filterUseful) priceMult *= 1.1;
+
+    return priceMult * hintPriceMult * 0.7;
+}
+
+async function buyHint() {
     if (!hintMode) return;
-    const prices = {
-        "rand": 1,
-        "new": 2,
-        "prog": 3,
-    }
-    if (hintPoints < prices[type]) {
+    const price = getHintPrice();
+    if (hintScore < price) {
         updateProgressTab();
         return;
     }
 
     let hintable = client.room.missingLocations;
-    if (type !== "rand") {
+    if (document.getElementById("ap-hint-new-only").checked) {
         let hinted = client.items.hints.map(h => h.locationId);
         hintable = hintable.filter(l => !hinted.includes(l));
     }
+
+    const buyHintButton = document.getElementById("ap-buy-hint");
+    buyHintButton.setAttribute("disabled","true");
 
     let hintValid = false;
     let hint, hintIndex;
@@ -504,20 +530,25 @@ async function buyHint(type) {
 
         hintIndex = Math.floor(Math.random() * hintable.length);
         hint = await client.scout([hintable[hintIndex]], 0);
+        hint = hint[0];
 
-        if (type === "prog" && !hint[0].progression) continue;
+        if (document.getElementById("ap-hint-no-traps") && hint.trap) continue;
+        if (document.getElementById("ap-hint-no-filler") && hint.filler) continue;
+        if (document.getElementById("ap-hint-no-useful") && hint.useful) continue;
         hintValid = true;
     }
 
     await client.scout([hintable[hintIndex]], 1);
-    hintPoints -= prices[type];
+    hintScore -= price;
 
     let notifSettings = { color: "#888888", backgroundColor: "#060606dd", timeout: 7000 };
-    if (hint[0].filler) notifSettings.color = "#01d2d3";
-    if (hint[0].useful) notifSettings.color = "#6d8be8";
-    if (hint[0].progression) notifSettings.color = "#ae98ee";
-    if (hint[0].trap) notifSettings.color = "#fa8072";
-    createAPNotification(`${hint[0].receiver}'s ${hint[0].name} is at ${hint[0].locationName}`, notifSettings);
+    if (hint.filler) notifSettings.color = "#01d2d3";
+    if (hint.useful) notifSettings.color = "#6d8be8";
+    if (hint.progression) notifSettings.color = "#ae98ee";
+    if (hint.trap) notifSettings.color = "#fa8072";
+    createAPNotification(`${hint.receiver}'s ${hint.name} is at ${hint.locationName}`, notifSettings);
+
+    buyHintButton.removeAttribute("disabled");
 
     updateProgressTab();
 }
@@ -584,23 +615,14 @@ async function onZenithFinish() {
         }
         setTab("progress");
 
-        document.getElementById("ap-hintmode-space-filler").style.height = "40px";
-        document.getElementById("ap-hintmode-progress-earned").style.opacity = "1";
-        const scoreDisplay = document.getElementById("ap-hintmode-progress-fill");
-        const fillingBar = document.getElementById("ap-hintmode-bar-new");
-        const regularBar = document.getElementById("ap-hintmode-bar-fill");
+        const scoreDisplay = document.getElementById("ap-hint-gained");
         scoreDisplay.innerHTML = "0.0";
         
         await new Promise(resolve => setTimeout(resolve, 300));
         const scoreAnimationDuration = 500;
-        function animateHintScoreChange(newScore, finalAnimation = false) {
-            let duration = scoreAnimationDuration;
-            if (finalAnimation) {
-                duration *= 3;
-            }
+        function animateHintScoreChange(newScore) {
             let start; 
             let oldScore = Number(scoreDisplay.innerHTML);
-            let oldHintScore = hintScore;
 
             function ease(min, max, progress) {
                 return min + (max - min) * (1 - Math.pow(1 - progress, 3));
@@ -610,22 +632,14 @@ async function onZenithFinish() {
                 if (!start) start = document.timeline.currentTime;
                 const elapsed = time - start;
 
-                if (elapsed >= duration) {
+                if (elapsed >= scoreAnimationDuration) {
                     scoreDisplay.innerHTML = newScore.toFixed(1);
                     return;
                 }
-                const progress = elapsed / duration;
+                const progress = elapsed / scoreAnimationDuration;
                 const currentScore = oldScore + (newScore - oldScore) * ease(0, 1, progress);
 
                 scoreDisplay.innerHTML = currentScore.toFixed(1);
-                fillingBar.style.width = `${Math.min(1, currentScore / hintGoal) * 100}%`;
-
-                if (finalAnimation) {
-                    let regularBarScore = oldScore - currentScore + oldHintScore;
-                    regularBarScore %= hintGoal;
-                    regularBar.style.width = `${Math.min(1, regularBarScore / hintGoal) * 100}%`;
-                    document.getElementById("ap-hint-score").innerHTML = regularBarScore.toFixed(1);
-                }
                 
                 requestAnimationFrame(frame);
             }
@@ -641,13 +655,13 @@ async function onZenithFinish() {
         
         const placement = document.getElementById("zenith_results_stats_overview").children[3].children[1].innerText;
         if (placement.split("/")[0] == 1) {
-            actions.push({ message: "Lobby's Crown", value: 100, type: "add" })
+            actions.push({ message: "Lobby's Crown", value: 100, type: "add", desc: `Reached 1st in the lobby` })
         }
         else if (placement.split("/")[0] <= 3) {
-            actions.push({ message: "Podium Finish", value: 50, type: "add" })
+            actions.push({ message: "Podium Finish", value: 50, type: "add", desc: `Reached top 3 in the lobby` })
         }
         else if (placement.split("/")[0] <= 10) {
-            actions.push({ message: "Top Contender", value: 20, type: "add" })
+            actions.push({ message: "Top Contender", value: 20, type: "add", desc: `Reached top 10 in the lobby` })
         }
 
         const idToNameMap = {
@@ -694,31 +708,37 @@ async function onZenithFinish() {
         
         const survivalTime = document.getElementById("zenith_results_stats_overview").children[0].children[1].innerText;
         const survivalTimeSeconds = Number(survivalTime.split(":")[0]) * 60 + Number(survivalTime.split(":")[1]);
+        const desc = `Survived for ${Math.floor(survivalTimeSeconds / 60)}+ minutes`;
         if (survivalTimeSeconds < 240) {
-            actions.push({ message: "Short Run Penalty", value: Math.max(0.25, Math.log10(survivalTimeSeconds / 24)), type: "mult" })
+            actions.push({ 
+                message: "Short Run Penalty", 
+                value: Math.max(0.25, Math.log10(survivalTimeSeconds / 24)), 
+                type: "mult", 
+                desc: `Run was shorter than 4 mins` 
+            })
         }
         else if (survivalTimeSeconds > 720) {
-            actions.push({ message: "Superb Survival", value: 600, type: "add" })
+            actions.push({ message: "Superb Survival", value: 600, type: "add", desc })
         } else if (survivalTimeSeconds > 660) {
-            actions.push({ message: "Incredible Survival", value: 450, type: "add" })
+            actions.push({ message: "Incredible Survival", value: 450, type: "add", desc })
         } else if (survivalTimeSeconds > 600) {
-            actions.push({ message: "Excellent Survival", value: 350, type: "add" })
+            actions.push({ message: "Excellent Survival", value: 350, type: "add", desc })
         } else if (survivalTimeSeconds > 540) {
-            actions.push({ message: "Great Survival", value: 200, type: "add" })
+            actions.push({ message: "Great Survival", value: 200, type: "add", desc })
         } else if (survivalTimeSeconds > 480) {
-            actions.push({ message: "Good Survival", value: 100, type: "add" })
+            actions.push({ message: "Good Survival", value: 100, type: "add", desc })
         }
 
         let backToBack = Number(document.getElementById("zenith_results_stats_overview").children[14].children[1].innerText);
         if (duo) backToBack = Number(document.getElementById("zenith_results_stats_overview").children[15].children[1].innerText.split("  ")[0]);
         if (backToBack >= 25) {
-            actions.push({ message: "Supercharged Skill", value: backToBack * 2.5, type: "add" })
+            actions.push({ message: "Supercharged Skill", value: backToBack * 2.5, type: "add", desc: `Reached ${backToBack} BTB` })
         }
 
         let allClears = Number(document.getElementById("zenith_results_stats_full").children[23].children[1].innerText);
         if (duo) allClears = Number(document.getElementById("zenith_results_stats_full").children[23].children[1].innerText.split("  ")[1]);
         if (allClears > 0) {
-            actions.push({ message: "Perfect Clear Mastery", value: allClears * 30, type: "add" })
+            actions.push({ message: "Perfect Clear Mastery", value: allClears * 30, type: "add", desc: `Achieved ${allClears} Perfect Clears` })
         }
 
         let finessePercent = Number(document.getElementById("zenith_results_stats_full").children[24].children[1].innerText.replace("%",""));
@@ -730,53 +750,71 @@ async function onZenithFinish() {
         const finesseBonusAllowed = piecesPlaced >= 100 && survivalTimeSeconds >= 180;
 
         if (finessePercent >= 100 && finesseBonusAllowed) {
-            actions.push({ message: "Perfect Finesse", value: piecesPlaced * 4, type: "add" })
+            actions.push({ message: "Perfect Finesse", value: piecesPlaced * 4, type: "add", desc: `Placed ${piecesPlaced} pieces with perfect finesse` })
         } else if (finessePercent > 98 && finesseBonusAllowed) {
-            actions.push({ message: "Magnificent Finesse", value: piecesPlaced * 1.9, type: "add" })
+            actions.push({ message: "Magnificent Finesse", value: piecesPlaced * 1.9, type: "add", desc: `Placed ${piecesPlaced} pieces with 98%+ finesse` })
         } else if (finessePercent > 95 && finesseBonusAllowed) {
-            actions.push({ message: "Exquisite Finesse", value: piecesPlaced * 0.8, type: "add" })
+            actions.push({ message: "Exquisite Finesse", value: piecesPlaced * 0.8, type: "add", desc: `Placed ${piecesPlaced} pieces with 95%+ finesse` })
         } else if (finessePercent > 90 && finesseBonusAllowed) {
-            actions.push({ message: "Refined Finesse", value: piecesPlaced * 0.25, type: "add" })
+            actions.push({ message: "Refined Finesse", value: piecesPlaced * 0.25, type: "add", desc: `Placed ${piecesPlaced} pieces with 90%+ finesse` })
         } else if (finessePercent > 85 && finesseBonusAllowed) {
-            actions.push({ message: "Solid Finesse", value: piecesPlaced * 0.1, type: "add" })
+            actions.push({ message: "Solid Finesse", value: piecesPlaced * 0.1, type: "add", desc: `Placed ${piecesPlaced} pieces with 85%+ finesse` })
         }
         
-        const bonusText = document.getElementById("ap-hintmode-progress-bonus")
+        const statsDiv = document.getElementById("ap-hintmode-stats");
+        statsDiv.classList.add("adding");
+
+        const bonusesDiv = document.getElementById("ap-hint-bonuses");
+        bonusesDiv.style.opacity = "0";
+        await new Promise(resolve => setTimeout(resolve, 500));
+        bonusesDiv.innerHTML = "";
+        bonusesDiv.style.opacity = "1";
+        
         for (const action of actions) {
+            const actionDiv = document.createElement("div");
+            actionDiv.classList.add("ap-hintmode-bonus");
+
+            const actionText = document.createElement("div");
+            actionText.classList.add("bonus-name");
+            actionText.innerHTML = action.message;
+            actionDiv.appendChild(actionText)
+
+            const bonusText = document.createElement("div");
+            bonusText.classList.add("bonus-value");
+
             if (action.type === "add") {
-                bonusText.innerHTML = `<span>+${action.value.toFixed(1)}</span>`;
+                bonusText.innerHTML = `+${action.value.toFixed(1)}`;
                 scoreEarned += action.value;
             }
             if (action.type === "mult") {
-                bonusText.innerHTML = `<span>x${action.value.toFixed(2)}</span>`;
+                bonusText.innerHTML = `X${action.value.toFixed(2)}`;
                 scoreEarned *= action.value;
             }
-            bonusText.innerHTML += ` ${action.message}`;
-            bonusText.classList.remove("bump");
-            scoreDisplay.classList.remove("bump");
+            actionDiv.appendChild(bonusText)
             
-            await new Promise(resolve => setTimeout(resolve, 2000));
+            if (action.desc) {
+                const descText = document.createElement("div");
+                descText.classList.add("bonus-quiet");
+                descText.innerHTML = action.desc;
+                actionDiv.appendChild(descText)
+            }
 
-            bonusText.classList.add("bump");
-            scoreDisplay.classList.add("bump");
+            bonusesDiv.appendChild(actionDiv);
+            statsDiv.scroll({ top: statsDiv.scrollHeight, behavior: "smooth" });
+            
             animateHintScoreChange(scoreEarned);
+            scoreDisplay.classList.add("animating");
+            scoreDisplay.addEventListener("animationend", () => {
+                scoreDisplay.classList.remove("animating");
+            }, { once: true });
 
-            await new Promise(resolve => setTimeout(resolve, 300));
+            await new Promise(resolve => setTimeout(resolve, 1500));
         }
 
-        await new Promise(resolve => setTimeout(resolve, 1000));
-
-        animateHintScoreChange(0, true);
         hintScore += scoreEarned;
-        hintPoints += Math.floor(hintScore / hintGoal);
-        hintScore = hintScore % hintGoal;
-        
-        await new Promise(resolve => setTimeout(resolve, scoreAnimationDuration * 3));
-
-        document.getElementById("ap-hintmode-space-filler").style.height = "0px";
-        document.getElementById("ap-hintmode-progress-earned").style.opacity = "0";
-        
         updateProgressTab();
+        statsDiv.scroll({ top: 0, behavior: "smooth" });
+        statsDiv.classList.remove("adding");
 
         return;
     }
@@ -980,30 +1018,17 @@ async function detectDifficulties() {
 
 async function updateProgressTab() {
     if (hintMode) {
-        hintGoal = hintGoal || getPreference("hintGoal") || 1000;
+        hintPriceMult = hintPriceMult || getPreference("hintGoal") || 1000;
         hintScore ||= 0;
-        hintPoints ||= 0;
 
-        document.getElementById("ap-hint-points").innerHTML = hintPoints;
         document.getElementById("ap-hint-score").innerHTML = hintScore.toFixed(1);
-        document.getElementById("ap-hint-req").innerHTML = hintGoal.toFixed(1);
-        document.getElementById("ap-hint-req-input").value = (hintGoal / 0.8).toFixed(0);
+        document.getElementById("ap-hint-req-input").value = hintPriceMult.toFixed(0);
 
-        const prices = {
-            "rand": 1,
-            "new": 2,
-            "prog": 3,
-        }
-        for (const [type, price] of Object.entries(prices)) {
-            if (hintPoints < price) {
-                document.getElementById(`ap-buy-${type}`).setAttribute("disabled", "true");
-            } else {
-                document.getElementById(`ap-buy-${type}`).removeAttribute("disabled");
-            }
-        }
+        const newPrice = getNewHintPrice();
+        const price = getHintPrice();
+        document.getElementById("ap-hint-total-price").innerHTML = price.toFixed(1);
+        document.getElementById("ap-hint-new-price").innerHTML = `[X${newPrice.toFixed(2)}]`;
 
-        const prog = Math.min(hintScore / hintGoal, 1);
-        document.getElementById("ap-hintmode-bar-fill").style.width = `${prog * 100}%`;
         return;
     }
     if (!yamlOptions.difficulties) {
@@ -1277,8 +1302,18 @@ client.messages.on("message", (content, nodes) => {
     }
 })
 
+client.items.on("hintReceived", () => {
+    if (hintMode) {
+        updateProgressTab();
+    }
+})
+
 client.items.on("itemsReceived", async (items) => {
-    if (hintMode) return;
+    if (hintMode) { 
+        // update visual price of new hint
+        updateProgressTab();
+        return;
+    }
 
     let lastIndex = client.storage.store["lastSeenItemIndex"];
     if (!lastIndex) {
