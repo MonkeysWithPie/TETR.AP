@@ -199,7 +199,7 @@ waitUntil(
 
             expectLoginChecks = true;
             const tags = inputs["ap-hintmode"].checked ? ["HintGame"] : [];
-            client.login(inputs["ap-server"].value, inputs["ap-slot"].value, inputs["ap-hintmode"] ? "" : "TETR.IO", { 
+            client.login(inputs["ap-server"].value, inputs["ap-slot"].value, inputs["ap-hintmode"].checked ? "" : "TETR.IO", { 
                 password: inputs["ap-password"].value,
                 version: { major: 0, minor: 6, build: 7 }, 
                 tags,
