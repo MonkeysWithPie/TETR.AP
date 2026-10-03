@@ -3,6 +3,15 @@
 
 const TAP = "[TETR.AP]"
 
+if (!window.location.href.includes("tetr.io")) {
+    return;
+}
+// TODO when we add a way to close the client entirely use that instead of
+// just cancelling so there's a semi-seamless way to update
+if (document.getElementById("tetrap-client-area")) {
+    return;
+}
+
 const { Client, clientStatuses } = await import("https://unpkg.com/archipelago.js/dist/archipelago.min.js");
 
 async function waitUntil(predicate, trigger, interval = 30) {
