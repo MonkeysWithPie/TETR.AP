@@ -431,7 +431,8 @@ function createAPNotification(text, {
     color = "#888888", 
     backgroundColor = "#060606dd",
     timeout = 5000,
-    gradient = false, }) {
+    gradient = false, 
+}) {
     const notification = document.createElement("div");
     notification.classList.add("ns", "notification", "has_image");
 
@@ -450,12 +451,18 @@ color: white;`;
     notification.innerHTML = `<img class="notification_icon" src="{{archipelago_logo.png}}"><p>${text.toLowerCase()}</p>`;
     document.getElementById("notifications").appendChild(notification);
 
-    setTimeout(() => {
+    function despawnNotif() {
+        if (notification.classList.contains("despawning")) return;
         notification.classList.add("despawning");
         setTimeout(() => {
             notification.remove();
         }, 600)
-    }, timeout);
+    }
+
+    notification.onclick = despawnNotif;
+    notification.despawn = despawnNotif;
+    if (typeof timeout === "number") setTimeout(despawnNotif, timeout);
+    return notification;
 }
 
 async function buyHint(type) {
@@ -791,7 +798,10 @@ async function onZenithFinish() {
         }
         scoutIDs.push(id);
     }
+    if (scoutIDs.length === 0) return;
+    const prepChecks = createAPNotification(`preparing to send ${scoutIDs.length} check${scoutIDs.length === 1 ? "": "s"}`, { timeout: null });
     const scoutResults = await client.scout(scoutIDs, 0);
+    prepChecks.despawn();
 
     for (const item of scoutResults) {
         if (!item) {
