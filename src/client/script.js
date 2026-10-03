@@ -487,6 +487,8 @@ function getNewHintPrice() {
 }
 
 function getHintPrice() {
+    if (client.room.missingLocations.length === 0) return 0;
+
     const newHint = document.getElementById("ap-hint-new-only").checked;
     const filterTraps = document.getElementById("ap-hint-no-traps").checked;
     const filterFiller = document.getElementById("ap-hint-no-filler").checked;
@@ -504,7 +506,7 @@ function getHintPrice() {
 async function buyHint() {
     if (!hintMode) return;
     const price = getHintPrice();
-    if (hintScore < price) {
+    if (hintScore < price || price === 0) {
         updateProgressTab();
         return;
     }
