@@ -511,7 +511,7 @@ async function buyHint() {
 
     let hintable = client.room.missingLocations;
     if (document.getElementById("ap-hint-new-only").checked) {
-        let hinted = client.items.hints.map(h => h.locationId);
+        let hinted = client.items.hints.map(h => h.item.locationId);
         hintable = hintable.filter(l => !hinted.includes(l));
     }
 
