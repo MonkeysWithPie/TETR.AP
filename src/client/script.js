@@ -144,8 +144,7 @@ waitUntil(
             document.getElementById("ap-nav").appendChild(button);
         }
         const filler = document.createElement("div");
-        filler.style.flexGrow = "1";
-        filler.style.borderBottom = "1px solid var(--ap-text)";
+        filler.classList.add("ap-tab-filler");
         document.getElementById("ap-nav").appendChild(filler);
 
         document.getElementById("ap-server").value = getPreference("lastServer") || "archipelago.gg:12345";
@@ -309,6 +308,7 @@ waitUntil(
             revProgresses = null;
             
             connectionStatus.innerHTML = "Disconnected"
+            document.body.classList.remove("ap-connected");
             document.getElementById("ap-username").innerHTML = ""
             shortStatus.innerHTML = "Not connected"
 
@@ -1371,6 +1371,7 @@ client.items.on("itemsReceived", async (items) => {
 })
 
 client.socket.on("connected", async (packet) => {
+    document.body.classList.add("ap-connected");
     yamlOptions = packet.slot_data;
     document.getElementById("ap-req-count").textContent = yamlOptions.goal_count;
 })

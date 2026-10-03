@@ -15,8 +15,8 @@
         --ap-text: #000;
         --ap-bg: #fff;
         --ap-bg-darker: #ddd;
-        --ap-header: #99f;
-        --ap-nav: #bbf;
+        --ap-header: #b1aaa4;
+        --ap-nav: #d3cec5;
         --ap-bad: #b00;
 
         --ap-disabled: #777;
@@ -27,12 +27,30 @@
         --ap-text: #eee;
         --ap-bg: #333;
         --ap-bg-darker: #111;
-        --ap-header: #227;
-        --ap-nav: #447;
+        --ap-header: #363533;
+        --ap-nav: #3f3c39;
         --ap-bad: #f88;
 
         --ap-disabled: #aaa;
         --ap-disabled-bg: #555;
+    }
+
+    .ap-connected #tetrap-client-area {
+        --ap-header: #99f;
+        --ap-nav: #bbf;
+    }
+    .ap-connected #tetrap-client-area.dark {
+        --ap-header: #39397a;
+        --ap-nav: #447;
+    }
+
+    .ap-hintmode #tetrap-client-area {
+        --ap-header: #6fafc9;
+        --ap-nav: #96c9dd;
+    }
+    .ap-hintmode #tetrap-client-area.dark {
+        --ap-header: #264c5b;
+        --ap-nav: #224451;
     }
 
     #tetrap-client-area input, 
@@ -123,6 +141,7 @@
         background-color: var(--ap-header);
         padding: 2px;
         align-items: center;
+        transition: background-color 0.3s ease-out;
     }
 
     #ap-nav {
@@ -130,6 +149,7 @@
         background-color: var(--ap-nav);
         margin-bottom: 2px;
         border-top: 1px solid var(--ap-text);
+        transition: background-color 0.3s ease-out;
     }
 
     .ap-tab-button {
@@ -157,6 +177,11 @@
         color: var(--ap-disabled);
         background-color: var(--ap-disabled-bg);
         cursor: not-allowed;
+    }
+
+    .ap-tab-filler {
+        flex-grow: 1;
+        border-bottom: 1px solid var(--ap-text);
     }
 
     p.tetrap {
