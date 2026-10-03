@@ -205,7 +205,6 @@ waitUntil(
                 tags,
                 items: inputs["ap-hintmode"].checked ? 0 : 7,
             })
-                // TODO: fix successfully connecting with TextOnly tag since archipelago hates me
                 .then(async () => {
                     recentConnectFail = false;
                     document.getElementById("ap-chat-messages").innerHTML = ""
@@ -286,7 +285,7 @@ waitUntil(
                 })
         }
 
-        document.getElementById("ap-chat-input").onkeypress = (e) => {
+        document.getElementById("ap-chat-input").onkeydown = (e) => {
             if (e.key === "Enter" && !e.shiftKey) {
                 e.preventDefault();
                 if (chatInput.value.trim() === "") return;
@@ -352,9 +351,9 @@ waitUntil(
             const area = document.getElementById("tetrap-client-area")
             area.classList.toggle("collapsed")
             if (area.classList.contains("collapsed")) {
-                e.srcElement.innerHTML = "◀"
+                e.target.innerHTML = "◀"
             } else {
-                e.srcElement.innerHTML = "▶"
+                e.target.innerHTML = "▶"
             }
         }
 
@@ -375,8 +374,8 @@ waitUntil(
     }
 )
 
-// since someone might play on the same room with two different sessions,
-// data is saved per room and per player
+// kept for backwards compatability, prob should be removed soon though since
+// basically nobody used the client when this was a thing lol
 function getFromStorage(key) {
     if (!client.room.seedName || !client.name) return null;
 
@@ -778,33 +777,30 @@ async function onZenithFinish() {
 
     const { comboName, comboNum } = getComboAndNum(mods);
     if (!comboName) {
-        console.log(`${TAP} No combo found for mods ${mods}`);
         return;
     }
 
     const floor = getFloor(finalScore);
     console.log(`${TAP} Combo: ${comboName} (num ${comboNum}), Floor: ${floor}`)
 
-    let sentToSelf = false;
     const scoutIDs = [];
     for (let i = 2; i <= floor; i++) {
-        scoutIDs.push(i + (comboNum * 100));
+        const id = i + (comboNum * 100);
+        if (!(client.room.missingLocations.includes(id))) {
+            continue;
+        }
+        scoutIDs.push(id);
     }
     const scoutResults = await client.scout(scoutIDs, 0);
 
-    let checkPromises = [];
     for (const item of scoutResults) {
         if (!item) {
-            continue;
-        }
-        if (client.room.checkedLocations.includes(item.locationId)) {
             continue;
         }
         
         let notifText = `Sent ${item.name} to ${item.receiver}! (${item.locationName})`;
         if (item.receiver == client.name) {
             notifText = `Found your ${item.name}! (${item.locationName})`
-            sentToSelf = true;
             expectedChecks.push(item.locationId);
         }
 
@@ -817,10 +813,8 @@ async function onZenithFinish() {
         if (item.trap) notifSettings.color = "#fa8072";
         createAPNotification(notifText, notifSettings);
 
-        checkPromises.push(client.check(item.locationId));
+        client.check(item.locationId);
     }
-    await Promise.all(checkPromises);
-    relockCards();
 }
 
 const tarotCardMap = {
@@ -937,8 +931,6 @@ async function detectDifficulties() {
         yamlOptions.difficulties[combo] = floor;
     }
 
-    console.log(`${TAP} Detected difficulties: ${JSON.stringify(yamlOptions.difficulties)}`)
-
     // attempt to auto-detect check style
     if (typeof yamlOptions.check_style !== "number") {
         const mightBeVanilla = await client.scout([2], 0);
@@ -954,7 +946,6 @@ async function detectDifficulties() {
 
         const mightBeAll = await client.scout([allCheckTarget], 0);
 
-        console.log(`${TAP} ${mightBeVanilla[0]} ${mightBeAll[0]}`)
         if (mightBeVanilla[0] && !mightBeAll[0]) {
             yamlOptions.check_style = 0;
         }
@@ -994,6 +985,11 @@ async function updateProgressTab() {
 
         const prog = Math.min(hintScore / hintGoal, 1);
         document.getElementById("ap-hintmode-bar-fill").style.width = `${prog * 100}%`;
+        return;
+    }
+    if (!yamlOptions.difficulties) {
+        // difficulties haven't been detected yet; this happens on the first items received packet
+        // when difficulties are detected, the progress tab will be updated again anyway
         return;
     }
 
@@ -1196,7 +1192,6 @@ waitUntil(
         return !menus || menus.getAttribute("data-menu-type") !== "none" 
     }, 
     () => {
-        console.log(`${TAP} Menus loaded!`)
         menuLoaded = true;
         const menu = document.getElementById("tetrap-client-area");
         menu.classList.add("after-menu-load");
@@ -1246,7 +1241,6 @@ client.messages.on("message", (content, nodes) => {
         messageElement.appendChild(nodeElement);
     }
 
-    // messageElement.textContent = content
     messageElement.classList.add("ap-message")
     // don't scroll if the user is scrolled up...
     let shouldScroll = chatMessages.scrollTop + chatMessages.clientHeight >= chatMessages.scrollHeight - 20;
@@ -1281,8 +1275,6 @@ client.items.on("itemsReceived", async (items) => {
         .default()
         .add(items.length)
         .commit(false);
-
-    console.log(`${TAP} Received items: ${items}`)
     
     if (items.some(item => item.name.includes("Progress"))) {
         const matcher = /\+1km Reversed (.*) Progress/
@@ -1362,6 +1354,5 @@ client.items.on("itemsReceived", async (items) => {
 client.socket.on("connected", async (packet) => {
     yamlOptions = packet.slot_data;
     document.getElementById("ap-req-count").textContent = yamlOptions.goal_count;
-    console.log(`${TAP} Connected to AP server! ${JSON.stringify(yamlOptions)}`)
 })
 })()
