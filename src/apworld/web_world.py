@@ -17,15 +17,6 @@ class TetrAPWebWorld(WebWorld):
         ["MonkeysWithPie"]
     )
 
-    install_en = Tutorial(
-        "TETR.AP Installation Guide",
-        "A guide to installing TETR.AP.",
-        "English",
-        "install_en.md",
-        "install/en",
-        ["MonkeysWithPie"]
-    )
-
-    tutorials = [setup_en, install_en]
+    tutorials = [setup_en]
 
     option_groups = option_groups
