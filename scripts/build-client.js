@@ -18,4 +18,8 @@ const bookmarklet = minify_sync(clientScript, { mangle: {
     keep_fnames: true,
 }});
 
+if (!fs.existsSync("dist")) {
+    fs.mkdirSync("dist");
+}
+
 fs.writeFileSync("dist/client.min.js", `${bookmarklet.code}`);
