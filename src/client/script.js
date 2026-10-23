@@ -120,8 +120,8 @@ let hintPriceMult = null;
 
 // prepare these early so we can use them in teardown
 function onApTextFocus() {
-    body.classList.add("chatfocus");
-    body.classList.add("tetrap-chatfocus");
+    document.body.classList.add("chatfocus");
+    document.body.classList.add("tetrap-chatfocus");
 }
 function onApTextBlur() {
     body.classList.remove("chatfocus");
@@ -143,9 +143,10 @@ async function clickDetect() {
 function closeClient() {
     if (client.authenticated) {
         expectDisconnect = true;
-        socket.disconnect();
+        client.socket.disconnect();
     }
     abortWaitUntil = true;
+    const apMenu = document.getElementById("tetrap-client-area")
 
     for (const input of apMenu.querySelectorAll("input[type=text]")) {
         input.removeEventListener("focus", onApTextFocus)
@@ -156,7 +157,8 @@ function closeClient() {
         card.removeEventListener("click", clickDetect)
     }
 
-    document.getElementById("tetrap-client-area").remove();
+    unlockCards()
+    apMenu.remove();
 
     // in theory, the next GC run will pick up all the old tetrap code,
     // so this *should* be all the cleanup needed?
