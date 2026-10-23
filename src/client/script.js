@@ -6,17 +6,27 @@ const TAP = "[TETR.AP]"
 if (!window.location.href.includes("tetr.io")) {
     return;
 }
-// TODO when we add a way to close the client entirely use that instead of
-// just cancelling so there's a semi-seamless way to update
-if (document.getElementById("tetrap-client-area")) {
-    return;
-}
 
 const { Client, clientStatuses } = await import("https://unpkg.com/archipelago.js/dist/archipelago.min.js");
 
+// TODO actually test this
+if (document.getElementById("tetrap-client-area")) {
+    const shouldClose = confirm("TETR.AP is already running. Do you want to close the existing client?");
+    if (!shouldClose) return;
+
+    const event = new CustomEvent("ap-abort");
+    document.getElementById("tetrap-client-area").dispatchEvent(event);
+    
+    await waitUntil(() => !document.getElementById("tetrap-client-area"), () => {});
+}
+
+let abortWaitUntil = false;
+// TODO there's probably way to use some event listener instead of this,
+// probably better for performance but this is okay
 async function waitUntil(predicate, trigger, interval = 30) {
     while (!await predicate()) {
       await new Promise(res => setTimeout(res, interval));
+      if (abortWaitUntil) { return };
     }
     await trigger();
 }
@@ -108,6 +118,50 @@ let hintMode = false;
 let hintScore = null;
 let hintPriceMult = null;
 
+// prepare these early so we can use them in teardown
+function onApTextFocus() {
+    body.classList.add("chatfocus");
+    body.classList.add("tetrap-chatfocus");
+}
+function onApTextBlur() {
+    body.classList.remove("chatfocus");
+    body.classList.remove("tetrap-chatfocus");
+}
+function startAnimDetect(e) {
+    if (["ZenithCardRot", "ZenithCardReverseSpin"].includes(e.animationName)) {
+        updateModMultiplierDisplay();
+    }
+}
+async function clickDetect() {
+    // TODO: better way to do this?
+    await new Promise(resolve => setTimeout(resolve, 20));
+    updateModMultiplierDisplay();
+}
+
+// TODO use this for more than just closing when it's already running,
+// espec. when desktop build is ready
+function closeClient() {
+    if (client.authenticated) {
+        expectDisconnect = true;
+        socket.disconnect();
+    }
+    abortWaitUntil = true;
+
+    for (const input of apMenu.querySelectorAll("input[type=text]")) {
+        input.removeEventListener("focus", onApTextFocus)
+        input.removeEventListener("blur", onApTextBlur)
+    }
+    for (const card of document.getElementsByClassName("zenith_card")) {
+        card.removeEventListener("animationstart", startAnimDetect)
+        card.removeEventListener("click", clickDetect)
+    }
+
+    document.getElementById("tetrap-client-area").remove();
+
+    // in theory, the next GC run will pick up all the old tetrap code,
+    // so this *should* be all the cleanup needed?
+}
+
 waitUntil(
     () => document.body,
     () => {
@@ -151,15 +205,10 @@ waitUntil(
         document.getElementById("ap-password").value = getPreference("lastPassword") || "";
 
         const body = document.getElementsByTagName("body")[0];
+
         for (const input of apMenu.querySelectorAll("input[type=text]")) {
-            input.onfocus = () => {
-                body.classList.add("chatfocus");
-                body.classList.add("tetrap-chatfocus");
-            }
-            input.onblur = () => {
-                body.classList.remove("chatfocus");
-                body.classList.remove("tetrap-chatfocus");
-            }
+            input.addEventListener("focus", onApTextFocus)
+            input.addEventListener("blur", onApTextBlur)
         }
 
         const hintMultiplierDisplay = document.createElement("p")
@@ -179,21 +228,15 @@ waitUntil(
         }
 
         for (const card of document.getElementsByClassName("zenith_card")) {
-            card.addEventListener("animationstart", (e) => {
-                if (["ZenithCardRot", "ZenithCardReverseSpin"].includes(e.animationName)) {
-                    updateModMultiplierDisplay();
-                }
-            })
-            card.addEventListener("click", async () => {
-                // TODO: better way to do this?
-                await new Promise(resolve => setTimeout(resolve, 20));
-                updateModMultiplierDisplay();
-            })
+            card.addEventListener("animationstart", startAnimDetect)
+            card.addEventListener("click", clickDetect)
         }
 
         document.getElementById("ap-dark-toggle").onclick = (e) => {
             setPreference("darkMode", document.getElementById("tetrap-client-area").classList.toggle("dark"));
         }
+
+        apMenu.addEventListener("ap-abort", closeClient)
 
         document.getElementById("ap-connect-form").onsubmit = (e) => {
             e.preventDefault()
