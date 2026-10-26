@@ -124,8 +124,8 @@ function onApTextFocus() {
     document.body.classList.add("tetrap-chatfocus");
 }
 function onApTextBlur() {
-    body.classList.remove("chatfocus");
-    body.classList.remove("tetrap-chatfocus");
+    document.body.classList.remove("chatfocus");
+    document.body.classList.remove("tetrap-chatfocus");
 }
 function startAnimDetect(e) {
     if (["ZenithCardRot", "ZenithCardReverseSpin"].includes(e.animationName)) {
@@ -156,6 +156,9 @@ function closeClient() {
         card.removeEventListener("animationstart", startAnimDetect)
         card.removeEventListener("click", clickDetect)
     }
+
+    document.getElementById("ap-hintmode-mult-solo").remove()
+    document.getElementById("ap-hintmode-mult-duo").remove()
 
     unlockCards()
     apMenu.remove();
