@@ -1104,7 +1104,11 @@ async function updateProgressTab() {
         }
 
         const reversed = item.name.replace("Reversed ","");
-        if (tarotCardMap[reversed] && reversed !== item.name && (revProgresses[tarotCardMap[reversed]] || 0) >= yamlOptions.reverse_height) {
+        if (tarotCardMap[reversed] && 
+            reversed !== item.name && 
+            (revProgresses[tarotCardMap[reversed]] || 0) >= yamlOptions.reverse_height &&
+            unlockedMods.includes(reversed)
+        ) {
             unlockedMods.push(`${tarotCardMap[reversed]}_reversed`)
         }
     }
@@ -1121,7 +1125,7 @@ async function updateProgressTab() {
             possibleModsets.push(comboName);
         }
     }
-    if (unlockedMods.length >= 7) {
+    if (unlockedMods.filter(mod => !mod.endsWith("_reversed")).length >= 7) {
         possibleModsets.push("Swamp Water Lite");
     }
 
